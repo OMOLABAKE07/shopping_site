@@ -1,0 +1,44 @@
+RewriteEngine On
+RewriteBase /shopping_site/
+
+# Prevent rewriting for existing files and directories (including assets)
+# This allows direct access to /shopping_site/assets/...
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+# If the request is NOT for an existing file or directory,
+# rewrite the URL to index.php and pass the original request as a query string
+RewriteRule ^(.*)$ index.php/$1 [L]
+
+# Set default character set
+AddDefaultCharset UTF-8
+
+# Enable PHP error reporting in development (optional, can be controlled in php.ini)
+php_flag display_errors on
+php_value error_reporting E_ALL
+
+# Protect sensitive files and directories
+# Protect files starting with a dot (like .htaccess, .env)
+<FilesMatch "^\.">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Protect the config and classes directories from direct web access
+# Ensure paths here match your directory structure relative to the web root if different
+<FilesMatch "^(config|classes)/.*\.php$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+    
+    # Allow direct access to assets directory
+    RewriteRule ^assets/ - [L]
+    
+    # Redirect all other requests to index.php
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^(.*)$ index.php [QSA,L]
+</IfModule> 

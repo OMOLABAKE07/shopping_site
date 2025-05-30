@@ -30,9 +30,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'last_name' => 'required|max:50',
             'phone' => 'required|max:20'
         ];
-        
+
         $errors = Form::validate($_POST, $validationRules);
-        
+
         if (empty($errors)) {
             $userData = Form::sanitize([
                 'username' => $_POST['username'],
@@ -44,9 +44,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'address' => $_POST['address'] ?? '',
                 'role' => 'user'
             ]);
-            
+
             $userId = $userModel->register($userData);
-            
+
             if ($userId) {
                 Session::setFlash('success', 'Registration successful! Please login.');
                 header('Location: ' . BASE_URL . '/login.php');
@@ -56,7 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     }
-    
+
     // Store old input for form repopulation
     Form::setOld($_POST);
 }
@@ -72,6 +72,7 @@ $csrfToken = Form::generateCSRFToken();
     <link rel="stylesheet" href="<?php echo ASSETS_URL; ?>/css/bootstrap.css">
     <link rel="stylesheet" href="<?php echo ASSETS_URL; ?>/css/style.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="icon" href="<?php echo ASSETS_URL; ?>/images/favicon.ico" type="image/x-icon">
 </head>
 <body>
     <?php require_once INCLUDES_PATH . '/header.php'; ?>
@@ -92,7 +93,7 @@ $csrfToken = Form::generateCSRFToken();
 
                         <form method="POST" action="">
                             <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
-                            
+
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label for="username" class="form-label">Username</label>
@@ -100,12 +101,10 @@ $csrfToken = Form::generateCSRFToken();
                                            class="form-control <?php echo isset($errors['username']) ? 'is-invalid' : ''; ?>" 
                                            id="username" 
                                            name="username" 
-                                           value="<?php echo Form::old('username'); ?>"
+                                           value="<?php echo Form::old('username'); ?>" 
                                            required>
                                     <?php if (isset($errors['username'])): ?>
-                                        <div class="invalid-feedback">
-                                            <?php echo $errors['username']; ?>
-                                        </div>
+                                        <div class="invalid-feedback"><?php echo $errors['username']; ?></div>
                                     <?php endif; ?>
                                 </div>
 
@@ -115,12 +114,10 @@ $csrfToken = Form::generateCSRFToken();
                                            class="form-control <?php echo isset($errors['email']) ? 'is-invalid' : ''; ?>" 
                                            id="email" 
                                            name="email" 
-                                           value="<?php echo Form::old('email'); ?>"
+                                           value="<?php echo Form::old('email'); ?>" 
                                            required>
                                     <?php if (isset($errors['email'])): ?>
-                                        <div class="invalid-feedback">
-                                            <?php echo $errors['email']; ?>
-                                        </div>
+                                        <div class="invalid-feedback"><?php echo $errors['email']; ?></div>
                                     <?php endif; ?>
                                 </div>
                             </div>
@@ -134,9 +131,7 @@ $csrfToken = Form::generateCSRFToken();
                                            name="password" 
                                            required>
                                     <?php if (isset($errors['password'])): ?>
-                                        <div class="invalid-feedback">
-                                            <?php echo $errors['password']; ?>
-                                        </div>
+                                        <div class="invalid-feedback"><?php echo $errors['password']; ?></div>
                                     <?php endif; ?>
                                 </div>
 
@@ -148,9 +143,7 @@ $csrfToken = Form::generateCSRFToken();
                                            name="password_confirmation" 
                                            required>
                                     <?php if (isset($errors['password_confirmation'])): ?>
-                                        <div class="invalid-feedback">
-                                            <?php echo $errors['password_confirmation']; ?>
-                                        </div>
+                                        <div class="invalid-feedback"><?php echo $errors['password_confirmation']; ?></div>
                                     <?php endif; ?>
                                 </div>
                             </div>
@@ -162,12 +155,10 @@ $csrfToken = Form::generateCSRFToken();
                                            class="form-control <?php echo isset($errors['first_name']) ? 'is-invalid' : ''; ?>" 
                                            id="first_name" 
                                            name="first_name" 
-                                           value="<?php echo Form::old('first_name'); ?>"
+                                           value="<?php echo Form::old('first_name'); ?>" 
                                            required>
                                     <?php if (isset($errors['first_name'])): ?>
-                                        <div class="invalid-feedback">
-                                            <?php echo $errors['first_name']; ?>
-                                        </div>
+                                        <div class="invalid-feedback"><?php echo $errors['first_name']; ?></div>
                                     <?php endif; ?>
                                 </div>
 
@@ -177,12 +168,10 @@ $csrfToken = Form::generateCSRFToken();
                                            class="form-control <?php echo isset($errors['last_name']) ? 'is-invalid' : ''; ?>" 
                                            id="last_name" 
                                            name="last_name" 
-                                           value="<?php echo Form::old('last_name'); ?>"
+                                           value="<?php echo Form::old('last_name'); ?>" 
                                            required>
                                     <?php if (isset($errors['last_name'])): ?>
-                                        <div class="invalid-feedback">
-                                            <?php echo $errors['last_name']; ?>
-                                        </div>
+                                        <div class="invalid-feedback"><?php echo $errors['last_name']; ?></div>
                                     <?php endif; ?>
                                 </div>
                             </div>
@@ -193,12 +182,10 @@ $csrfToken = Form::generateCSRFToken();
                                        class="form-control <?php echo isset($errors['phone']) ? 'is-invalid' : ''; ?>" 
                                        id="phone" 
                                        name="phone" 
-                                       value="<?php echo Form::old('phone'); ?>"
+                                       value="<?php echo Form::old('phone'); ?>" 
                                        required>
                                 <?php if (isset($errors['phone'])): ?>
-                                    <div class="invalid-feedback">
-                                        <?php echo $errors['phone']; ?>
-                                    </div>
+                                    <div class="invalid-feedback"><?php echo $errors['phone']; ?></div>
                                 <?php endif; ?>
                             </div>
 
@@ -223,10 +210,12 @@ $csrfToken = Form::generateCSRFToken();
     </div>
 
     <?php require_once INCLUDES_PATH . '/footer.php'; ?>
-    <script src="<?php echo ASSETS_URL; ?>/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Load Bootstrap JS from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
 <?php
 // Clear old input after page load
 Form::clearOld();
-?> 
+?>

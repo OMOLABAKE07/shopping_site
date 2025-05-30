@@ -4,7 +4,12 @@ require_once __DIR__ . '/../config/paths.php';
 
 // Require admin access
 Session::start();
-Session::requireAdmin();
+
+// Check if user is logged in and is an admin
+if (!Session::isLoggedIn() || (Session::getCurrentUser()['role'] ?? '') !== 'admin') {
+    // Redirect to login page or an access denied page
+    redirect('login.php'); // Or a dedicated access denied page
+}
 
 // Get statistics
 $userModel = new User();
@@ -56,14 +61,14 @@ $totalReviews = count($reviewModel->all());
                 <h3>Admin Panel</h3>
             </div>
             <ul class="sidebar-menu">
-                <li class="active"><a href="<?php echo BASE_URL; ?>/admin/dashboard.php"><i class="fa fa-dashboard"></i> Dashboard</a></li>
-                <li><a href="<?php echo BASE_URL; ?>/admin/products.php"><i class="fa fa-shopping-bag"></i> Products</a></li>
-                <li><a href="<?php echo BASE_URL; ?>/admin/orders.php"><i class="fa fa-shopping-cart"></i> Orders</a></li>
-                <li><a href="<?php echo BASE_URL; ?>/admin/categories.php"><i class="fa fa-tags"></i> Categories</a></li>
-                <li><a href="<?php echo BASE_URL; ?>/admin/users.php"><i class="fa fa-users"></i> Users</a></li>
-                <li><a href="<?php echo BASE_URL; ?>/admin/reviews.php"><i class="fa fa-star"></i> Reviews</a></li>
+                <li class="active"><a href="dashboard.php"><i class="fa fa-dashboard"></i> Dashboard</a></li>
+                <li><a href="products.php"><i class="fa fa-shopping-bag"></i> Products</a></li>
+                <li><a href="orders.php"><i class="fa fa-shopping-cart"></i> Orders</a></li>
+                <li><a href="categories.php"><i class="fa fa-tags"></i> Categories</a></li>
+                <li><a href="users.php"><i class="fa fa-users"></i> Users</a></li>
+                <li><a href="reviews.php"><i class="fa fa-star"></i> Reviews</a></li>
                 <li><a href="<?php echo BASE_URL; ?>/"><i class="fa fa-home"></i> View Site</a></li>
-                <li><a href="<?php echo BASE_URL; ?>/logout.php"><i class="fa fa-sign-out"></i> Logout</a></li>
+                <li><a href="<?php echo url('logout.php'); ?>"><i class="fa fa-sign-out"></i> Logout</a></li>
             </ul>
         </nav>
 
@@ -120,7 +125,7 @@ $totalReviews = count($reviewModel->all());
             <div class="card">
                 <div class="card-header">
                     <h2>Recent Orders</h2>
-                    <a href="<?php echo BASE_URL; ?>/admin/orders.php" class="btn btn-primary">View All</a>
+                    <a href="orders.php" class="btn btn-primary">View All</a>
                 </div>
                 <div class="card-body">
                     <table class="table">
@@ -147,7 +152,7 @@ $totalReviews = count($reviewModel->all());
                                 </td>
                                 <td><?php echo date('M d, Y', strtotime($order['created_at'])); ?></td>
                                 <td>
-                                    <a href="<?php echo BASE_URL; ?>/admin/orders.php?id=<?php echo $order['id']; ?>" class="btn btn-sm btn-info">View</a>
+                                    <a href="orders.php?id=<?php echo $order['id']; ?>" class="btn btn-sm btn-info">View</a>
                                 </td>
                             </tr>
                             <?php endforeach; ?>
@@ -160,7 +165,7 @@ $totalReviews = count($reviewModel->all());
             <div class="card">
                 <div class="card-header">
                     <h2>Low Stock Products</h2>
-                    <a href="<?php echo BASE_URL; ?>/admin/products.php" class="btn btn-primary">View All</a>
+                    <a href="products.php" class="btn btn-primary">View All</a>
                 </div>
                 <div class="card-body">
                     <table class="table">
@@ -185,7 +190,7 @@ $totalReviews = count($reviewModel->all());
                                 </td>
                                 <td>$<?php echo number_format($product['price'], 2); ?></td>
                                 <td>
-                                    <a href="<?php echo BASE_URL; ?>/admin/products.php?id=<?php echo $product['id']; ?>" class="btn btn-sm btn-info">Edit</a>
+                                    <a href="products.php?id=<?php echo $product['id']; ?>" class="btn btn-sm btn-info">Edit</a>
                                 </td>
                             </tr>
                             <?php endforeach; ?>
@@ -198,7 +203,7 @@ $totalReviews = count($reviewModel->all());
             <div class="card">
                 <div class="card-header">
                     <h2>Pending Reviews</h2>
-                    <a href="<?php echo BASE_URL; ?>/admin/reviews.php" class="btn btn-primary">View All</a>
+                    <a href="reviews.php" class="btn btn-primary">View All</a>
                 </div>
                 <div class="card-body">
                     <table class="table">
@@ -225,7 +230,7 @@ $totalReviews = count($reviewModel->all());
                                 <td><?php echo htmlspecialchars(substr($review['comment'], 0, 50)) . '...'; ?></td>
                                 <td><?php echo date('M d, Y', strtotime($review['created_at'])); ?></td>
                                 <td>
-                                    <a href="<?php echo BASE_URL; ?>/admin/reviews.php?id=<?php echo $review['id']; ?>" class="btn btn-sm btn-info">Review</a>
+                                    <a href="reviews.php?id=<?php echo $review['id']; ?>" class="btn btn-sm btn-info">Review</a>
                                 </td>
                             </tr>
                             <?php endforeach; ?>

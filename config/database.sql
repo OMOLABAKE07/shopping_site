@@ -94,3 +94,34 @@ CREATE TABLE IF NOT EXISTS reviews (
     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
+CREATE TABLE saved_items (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    product_id INT NOT NULL,
+    quantity INT NOT NULL DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (product_id) REFERENCES products(id)
+);
+
+CREATE TABLE discount_codes (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    code VARCHAR(50) NOT NULL UNIQUE,
+    type ENUM('percentage', 'fixed') NOT NULL,
+    value DECIMAL(10,2) NOT NULL,
+    min_purchase DECIMAL(10,2) DEFAULT 0,
+    max_uses INT DEFAULT NULL,
+    uses_count INT DEFAULT 0,
+    start_date DATE,
+    end_date DATE,
+    status ENUM('active', 'inactive') DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+ALTER TABLE products
+ADD COLUMN weight DECIMAL(10,2) DEFAULT 0,
+ADD COLUMN tax_rate DECIMAL(5,2) DEFAULT 0,
+ADD COLUMN sku VARCHAR(50) UNIQUE;

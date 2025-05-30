@@ -17,7 +17,7 @@ require_once __DIR__ . '/../includes/header.php';
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
         <!-- CSS Files -->
-        <link rel="stylesheet" href="<?php echo ASSETS_URL; ?>/css/bootstrap.min.css">
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
         <link rel="stylesheet" href="<?php echo ASSETS_URL; ?>/css/bootstrap-theme.min.css">
         <link rel="stylesheet" href="<?php echo ASSETS_URL; ?>/css/fontAwesome.css">
         <link rel="stylesheet" href="<?php echo ASSETS_URL; ?>/css/hero-slider.css">
@@ -53,19 +53,19 @@ require_once __DIR__ . '/../includes/header.php';
                         </a>
                         <nav id="primary-nav" class="dropdown cf">
                             <ul class="dropdown menu">
-                                <li><a href="<?php echo BASE_URL; ?>/">Home</a></li>
-                                <li><a href="<?php echo BASE_URL; ?>/pages/products.php">Products</a></li>
-                                <li class='active'><a href="<?php echo BASE_URL; ?>/pages/checkout.php">Checkout</a></li>
+                                <li><a href="<?php echo url(); ?>">Home</a></li>
+                                <li><a href="<?php echo url('pages/products.php'); ?>">Products</a></li>
+                                <li class='active'><a href="<?php echo url('pages/checkout.php'); ?>">Checkout</a></li>
                                 <li>
                                     <a href="#">About</a>
                                     <ul class="sub-menu">
-                                        <li><a href="<?php echo BASE_URL; ?>/pages/about-us.php">About Us</a></li>
-                                        <li><a href="<?php echo BASE_URL; ?>/pages/blog.php">Blog</a></li>
-                                        <li><a href="<?php echo BASE_URL; ?>/pages/testimonials.php">Testimonials</a></li>
-                                        <li><a href="<?php echo BASE_URL; ?>/pages/terms.php">Terms</a></li>
+                                        <li><a href="<?php echo url('pages/about-us.php'); ?>">About Us</a></li>
+                                        <li><a href="<?php echo url('pages/blog.php'); ?>">Blog</a></li>
+                                        <li><a href="<?php echo url('pages/testimonials.php'); ?>">Testimonials</a></li>
+                                        <li><a href="<?php echo url('pages/terms.php'); ?>">Terms</a></li>
                                     </ul>
                                 </li>
-                                <li><a href="<?php echo BASE_URL; ?>/pages/contact.php">Contact Us</a></li>
+                                <li><a href="<?php echo url('pages/contact.php'); ?>">Contact Us</a></li>
                             </ul>
                         </nav>
                     </div>
@@ -316,16 +316,16 @@ require_once __DIR__ . '/../includes/header.php';
                         <div class="row">
                             <div class="col-md-6">
                                 <ul>
-                                    <li><a href="index.php"><i class="fa fa-stop"></i>Home</a></li>
-                                    <li><a href="about-us.php"><i class="fa fa-stop"></i>About</a></li>
-                                    <li><a href="contact.php"><i class="fa fa-stop"></i>Contact Us</a></li>
+                                    <li><a href="<?php echo url(); ?>"><i class="fa fa-stop"></i>Home</a></li>
+                                    <li><a href="<?php echo url('pages/about-us.php'); ?>"><i class="fa fa-stop"></i>About</a></li>
+                                    <li><a href="<?php echo url('pages/contact.php'); ?>"><i class="fa fa-stop"></i>Contact Us</a></li>
                                 </ul>
                             </div>
                             <div class="col-md-6">
                                 <ul>
-                                    <li><a href="products.php"><i class="fa fa-stop"></i>Products</a></li>
-                                    <li><a href="testimonials.php"><i class="fa fa-stop"></i>Testimonials</a></li>
-                                    <li><a href="blog.php"><i class="fa fa-stop"></i>Blog</a></li>
+                                    <li><a href="<?php echo url('pages/products.php'); ?>"><i class="fa fa-stop"></i>Products</a></li>
+                                    <li><a href="<?php echo url('pages/testimonials.php'); ?>"><i class="fa fa-stop"></i>Testimonials</a></li>
+                                    <li><a href="<?php echo url('pages/blog.php'); ?>"><i class="fa fa-stop"></i>Blog</a></li>
                                 </ul>
                             </div>
                         </div>

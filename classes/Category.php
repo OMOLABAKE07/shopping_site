@@ -8,6 +8,19 @@ class Category extends Model {
         parent::__construct();
     }
 
+    public function getAll() {
+        $sql = "SELECT c.*, 
+                (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id AND p.status = 'active') as product_count 
+                FROM {$this->table} c 
+                ORDER BY c.name ASC";
+        $result = $this->db->query($sql);
+        $categories = [];
+        while ($row = $result->fetch_assoc()) {
+            $categories[] = $row;
+        }
+        return $categories;
+    }
+
     public function getMainCategories() {
         return $this->where('parent_id IS NULL');
     }

@@ -109,4 +109,107 @@ class Product extends Model {
         }
         return $reviews;
     }
+
+    public function getAll($params = []) {
+        $category_id = $params['category_id'] ?? null;
+        $search = $params['search'] ?? '';
+        $sort = $params['sort'] ?? 'name_asc';
+        $page = $params['page'] ?? 1;
+        $per_page = $params['per_page'] ?? 12;
+        $offset = ($page - 1) * $per_page;
+
+        // Base query
+        $sql = "SELECT p.*, c.name as category_name 
+                FROM {$this->table} p 
+                LEFT JOIN categories c ON p.category_id = c.id 
+                WHERE p.status = 'active'";
+        $types = '';
+        $values = [];
+
+        // Add category filter
+        if ($category_id) {
+            $sql .= " AND p.category_id = ?";
+            $types .= 'i';
+            $values[] = $category_id;
+        }
+
+        // Add search filter
+        if ($search) {
+            $sql .= " AND (p.name LIKE ? OR p.description LIKE ?)";
+            $types .= 'ss';
+            $searchTerm = "%{$search}%";
+            $values[] = $searchTerm;
+            $values[] = $searchTerm;
+        }
+
+        // Add sorting
+        switch ($sort) {
+            case 'name_desc':
+                $sql .= " ORDER BY p.name DESC";
+                break;
+            case 'price_asc':
+                $sql .= " ORDER BY p.price ASC";
+                break;
+            case 'price_desc':
+                $sql .= " ORDER BY p.price DESC";
+                break;
+            default: // name_asc
+                $sql .= " ORDER BY p.name ASC";
+        }
+
+        // Add pagination
+        $sql .= " LIMIT ? OFFSET ?";
+        $types .= 'ii';
+        $values[] = $per_page;
+        $values[] = $offset;
+
+        $stmt = $this->db->prepare($sql);
+        if (!empty($values)) {
+            $stmt->bind_param($types, ...$values);
+        }
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $products = [];
+        while ($row = $result->fetch_assoc()) {
+            $products[] = $row;
+        }
+        return $products;
+    }
+
+    public function getCount($params = []) {
+        $category_id = $params['category_id'] ?? null;
+        $search = $params['search'] ?? '';
+
+        // Base query
+        $sql = "SELECT COUNT(*) as total 
+                FROM {$this->table} p 
+                WHERE p.status = 'active'";
+        $types = '';
+        $values = [];
+
+        // Add category filter
+        if ($category_id) {
+            $sql .= " AND p.category_id = ?";
+            $types .= 'i';
+            $values[] = $category_id;
+        }
+
+        // Add search filter
+        if ($search) {
+            $sql .= " AND (p.name LIKE ? OR p.description LIKE ?)";
+            $types .= 'ss';
+            $searchTerm = "%{$search}%";
+            $values[] = $searchTerm;
+            $values[] = $searchTerm;
+        }
+
+        $stmt = $this->db->prepare($sql);
+        if (!empty($values)) {
+            $stmt->bind_param($types, ...$values);
+        }
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+        return $row['total'];
+    }
 }

@@ -16,36 +16,29 @@ $errors = [];
 $userModel = new User();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Validate CSRF token
     if (!Form::validateCSRFToken($_POST['csrf_token'] ?? '')) {
         $errors['form'] = 'Invalid form submission';
     } else {
-        // Ensure $_POST is an array before validation
         $postData = is_array($_POST) ? $_POST : [];
-        
-        // Validate form data
+
         $validationRules = [
             'email' => 'required|email',
             'password' => 'required|min:6'
         ];
-        
+
         $errors = Form::validate($postData, $validationRules);
-        
+
         if (empty($errors)) {
-            // Sanitize the entire post data array
             $sanitizedData = Form::sanitize($postData);
             $email = $sanitizedData['email'];
-            $password = $postData['password']; // Don't sanitize password
-            
+            $password = $postData['password'];
+
             $user = $userModel->login($email, $password);
-            
+
             if ($user) {
                 Session::set('user_id', $user['id']);
-                
-                // Redirect to the intended page or home
                 $redirect = Session::get('redirect_after_login', BASE_URL);
                 Session::remove('redirect_after_login');
-                
                 header("Location: {$redirect}");
                 exit;
             } else {
@@ -53,8 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     }
-    
-    // Store old input for form repopulation
+
     Form::setOld($postData);
 }
 
@@ -66,6 +58,7 @@ $csrfToken = Form::generateCSRFToken();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - <?php echo SITE_NAME; ?></title>
+    <link rel="icon" href="<?php echo ASSETS_URL; ?>/images/favicon.ico" type="image/x-icon">
     <link rel="stylesheet" href="<?php echo ASSETS_URL; ?>/css/bootstrap.css">
     <link rel="stylesheet" href="<?php echo ASSETS_URL; ?>/css/style.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
@@ -89,7 +82,7 @@ $csrfToken = Form::generateCSRFToken();
 
                         <form method="POST" action="">
                             <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
-                            
+
                             <div class="mb-3">
                                 <label for="email" class="form-label">Email</label>
                                 <input type="email" 
@@ -136,10 +129,10 @@ $csrfToken = Form::generateCSRFToken();
     </div>
 
     <?php require_once INCLUDES_PATH . '/footer.php'; ?>
-    <script src="<?php echo ASSETS_URL; ?>/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+
 </body>
 </html>
 <?php
-// Clear old input after page load
 Form::clearOld();
-?> 
+?>

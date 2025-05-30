@@ -9,31 +9,28 @@ require_once __DIR__ . '/../includes/header.php';
 
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="utf-8">
-        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-        <title><?php echo SITE_NAME; ?> - Home</title>
-        
-        <meta name="description" content="">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title><?php echo SITE_NAME; ?> - Home</title>
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 
-        <!-- CSS Files -->
-        <link rel="stylesheet" href="<?php echo ASSETS_URL; ?>/css/bootstrap.min.css">
-        <link rel="stylesheet" href="<?php echo ASSETS_URL; ?>/css/bootstrap-theme.min.css">
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-        <link rel="stylesheet" href="<?php echo ASSETS_URL; ?>/css/hero-slider.css">
-        <link rel="stylesheet" href="<?php echo ASSETS_URL; ?>/css/owl-carousel.css">
-        <link rel="stylesheet" href="<?php echo ASSETS_URL; ?>/css/style.css">
-        <link rel="stylesheet" href="<?php echo ASSETS_URL; ?>/css/datepicker.css">
+    <!-- CSS Files -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="<?php echo ASSETS_URL; ?>/css/hero-slider.css">
+    <link rel="stylesheet" href="<?php echo ASSETS_URL; ?>/css/owl-carousel.css">
+    <link rel="stylesheet" href="<?php echo ASSETS_URL; ?>/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker.min.css">
 
-        <!-- Preload Raleway font -->
-        <link rel="preload" href="https://fonts.gstatic.com/s/raleway/v34/1Ptug8zYS_SKggPNyC0IT4ttDfA.woff2" as="font" type="font/woff2" crossorigin>
-        <link href="https://fonts.googleapis.com/css?family=Raleway:100,200,300,400,500,600,700,800,900" rel="stylesheet">
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css?family=Raleway:100,200,300,400,500,600,700,800,900" rel="stylesheet">
+    <link rel="preload" href="https://fonts.gstatic.com/s/raleway/v34/1Ptug8zYS_SKggPNyC0IT4ttDfA.woff2" as="font" type="font/woff2" crossorigin>
 
-        <!-- Favicon -->
-        <link rel="icon" type="image/png" href="<?php echo ASSETS_URL; ?>/img/logo.png">
-        <link rel="shortcut icon" type="image/png" href="<?php echo ASSETS_URL; ?>/img/logo.png">
-    </head>
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="<?php echo ASSETS_URL; ?>/img/logo.png">
+</head>
 
 <body>
  
@@ -56,13 +53,13 @@ require_once __DIR__ . '/../includes/header.php';
                                 <li>
                                     <a href="#">About</a>
                                     <ul class="sub-menu">
-                                        <li><a href="<?php echo BASE_URL; ?>/about-us.php">About Us</a></li>
-                                        <li><a href="<?php echo BASE_URL; ?>/blog.php">Blog</a></li>
-                                        <li><a href="<?php echo BASE_URL; ?>/testimonials.php">Testimonials</a></li>
-                                        <li><a href="<?php echo BASE_URL; ?>/terms.php">Terms</a></li>
+                                        <li><a href="<?php echo BASE_URL; ?>/pages/about-us.php">About Us</a></li>
+                                        <li><a href="<?php echo BASE_URL; ?>/pages/blog.php">Blog</a></li>
+                                        <li><a href="<?php echo BASE_URL; ?>/pages/testimonials.php">Testimonials</a></li>
+                                        <li><a href="<?php echo BASE_URL; ?>/pages/terms.php">Terms</a></li>
                                     </ul>
                                 </li>
-                                <li><a href="<?php echo BASE_URL; ?>/contact.php">Contact Us</a></li>
+                                <li><a href="<?php echo BASE_URL; ?>/pages/contact.php">Contact Us</a></li>
                             </ul>
                         </nav><!-- / #primary-nav -->
                     </div>
@@ -475,8 +472,8 @@ require_once __DIR__ . '/../includes/header.php';
                             <div class="col-md-6">
                                 <ul>
                                     <li><a href="<?php echo BASE_URL; ?>/index.php"><i class="fa fa-stop"></i>Home</a></li>
-                                    <li><a href="<?php echo BASE_URL; ?>/about-us.php"><i class="fa fa-stop"></i>About</a></li>
-                                    <li><a href="<?php echo BASE_URL; ?>/contact.php"><i class="fa fa-stop"></i>Contact Us</a></li>
+                                    <li><a href="<?php echo BASE_URL; ?>/pages/about-us.php"><i class="fa fa-stop"></i>About</a></li>
+                                    <li><a href="<?php echo BASE_URL; ?>/pages/contact.php"><i class="fa fa-stop"></i>Contact Us</a></li>
                                 </ul>
                             </div>
                             <div class="col-md-6">
@@ -509,18 +506,16 @@ require_once __DIR__ . '/../includes/header.php';
         <p>Copyright © <?php echo date('Y'); ?> <?php echo SITE_NAME; ?> - Template by: <a href="https://www.phpjabbers.com/">PHPJabbers.com</a></p>
     </div>
 
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js" type="text/javascript"></script>
-    <script>window.jQuery || document.write('<script src="<?php echo ASSETS_URL; ?>/js/vendor/jquery-1.11.2.min.js"><\/script>')</script>
 
-    <script src="<?php echo ASSETS_URL; ?>/js/vendor/bootstrap.min.js"></script>
-    
-    <script src="<?php echo ASSETS_URL; ?>/js/datepicker.js"></script>
-    <script src="<?php echo ASSETS_URL; ?>/js/plugins.js"></script>
-    <script src="<?php echo ASSETS_URL; ?>/js/main.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+<script>window.jQuery || document.write('<script src="<?php echo ASSETS_URL; ?>/js/vendor/jquery-1.11.2.min.js"><\/script>')</script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
+<script src="<?php echo ASSETS_URL; ?>/js/plugins.js"></script>
+<script src="<?php echo ASSETS_URL; ?>/js/main.js"></script>
+
 </body>
-</html>
-
-<div class="container">
+</html><div class="container">
     <?php
     // Example of dynamic content
     $featured_products_query = "SELECT * FROM products WHERE featured = 1 LIMIT 4";
@@ -542,3 +537,4 @@ require_once __DIR__ . '/../includes/header.php';
 <?php
 require_once 'includes/footer.php';
 ?>
+

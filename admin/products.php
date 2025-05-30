@@ -4,7 +4,12 @@ require_once __DIR__ . '/../config/paths.php';
 
 // Require admin access
 Session::start();
-Session::requireAdmin();
+
+// Check if user is logged in and is an admin
+if (!Session::isLoggedIn() || (Session::getCurrentUser()['role'] ?? '') !== 'admin') {
+    // Redirect to login page or an access denied page
+    redirect('login.php'); // Or a dedicated access denied page
+}
 
 $productModel = new Product();
 $categoryModel = new Category();
@@ -87,14 +92,14 @@ $categories = $categoryModel->all();
                 <h3>Admin Panel</h3>
             </div>
             <ul class="sidebar-menu">
-                <li><a href="<?php echo BASE_URL; ?>/admin/dashboard.php"><i class="fa fa-dashboard"></i> Dashboard</a></li>
-                <li class="active"><a href="<?php echo BASE_URL; ?>/admin/products.php"><i class="fa fa-shopping-bag"></i> Products</a></li>
-                <li><a href="<?php echo BASE_URL; ?>/admin/orders.php"><i class="fa fa-shopping-cart"></i> Orders</a></li>
-                <li><a href="<?php echo BASE_URL; ?>/admin/categories.php"><i class="fa fa-tags"></i> Categories</a></li>
-                <li><a href="<?php echo BASE_URL; ?>/admin/users.php"><i class="fa fa-users"></i> Users</a></li>
-                <li><a href="<?php echo BASE_URL; ?>/admin/reviews.php"><i class="fa fa-star"></i> Reviews</a></li>
+                <li><a href="dashboard.php"><i class="fa fa-dashboard"></i> Dashboard</a></li>
+                <li class="active"><a href="products.php"><i class="fa fa-shopping-bag"></i> Products</a></li>
+                <li><a href="orders.php"><i class="fa fa-shopping-cart"></i> Orders</a></li>
+                <li><a href="categories.php"><i class="fa fa-tags"></i> Categories</a></li>
+                <li><a href="users.php"><i class="fa fa-users"></i> Users</a></li>
+                <li><a href="reviews.php"><i class="fa fa-star"></i> Reviews</a></li>
                 <li><a href="<?php echo BASE_URL; ?>/"><i class="fa fa-home"></i> View Site</a></li>
-                <li><a href="<?php echo BASE_URL; ?>/logout.php"><i class="fa fa-sign-out"></i> Logout</a></li>
+                <li><a href="<?php echo url('logout.php'); ?>"><i class="fa fa-sign-out"></i> Logout</a></li>
             </ul>
         </nav>
 

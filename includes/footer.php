@@ -8,8 +8,8 @@
             <div class="col-md-4">
                 <h5>Quick Links</h5>
                 <ul class="list-unstyled">
-                    <li><a href="<?php echo BASE_URL; ?>/about-us.php">About Us</a></li>
-                    <li><a href="<?php echo BASE_URL; ?>/contact.php">Contact Us</a></li>
+                    <li><a href="<?php echo BASE_URL; ?>/pages/about-us.php">About Us</a></li>
+                    <li><a href="<?php echo BASE_URL; ?>/pages/contact.php">Contact Us</a></li>
                     <li><a href="<?php echo BASE_URL; ?>/privacy.php">Privacy Policy</a></li>
                     <li><a href="<?php echo BASE_URL; ?>/terms.php">Terms & Conditions</a></li>
                 </ul>

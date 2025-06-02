@@ -21,31 +21,219 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             case 'create':
                 // Validate and create new product
                 $data = Form::sanitize($_POST);
-                $data['status'] = 'active';
-                if ($productModel->create($data)) {
-                    Session::setFlash('success', 'Product created successfully');
-                } else {
-                    Session::setFlash('error', 'Failed to create product');
+                // Remove keys not meant for the INSERT query (e.g. action, csrf_token)
+                unset($data['action'], $data['csrf_token']);
+                $data['status'] = 'active'; // Default status
+
+                // Define validation rules
+                $rules = [
+                    'name' => 'required|max:255',
+                    'category_id' => 'numeric',
+                    'description' => '',
+                    'price' => 'required|numeric',
+                    'sale_price' => 'numeric',
+                    'stock' => 'required|numeric',
+                    'sku' => 'required|max:50|unique:products,sku',
+                    'featured' => '', // Optional checkbox
+                ];
+
+                $errors = Form::validate($data, $rules);
+
+                // Handle file upload
+                $image_url = null;
+                if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
+                    $file = $_FILES['image'];
+                    $file_name = $file['name'];
+                    $file_tmp = $file['tmp_name'];
+                    $file_size = $file['size'];
+                    $file_error = $file['error'];
+                    $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+
+                    $allowed_extensions = ['jpg', 'jpeg', 'png', 'gif'];
+                    $max_file_size = 5 * 1024 * 1024; // 5MB
+
+                    if (in_array($file_ext, $allowed_extensions) && $file_size <= $max_file_size) {
+                        $new_file_name = uniqid('', true) . '.' . $file_ext;
+                        $upload_path = ASSETS_PATH . '/img/' . $new_file_name;
+                        
+                        // Ensure the upload directory exists
+                        if (!is_dir(ASSETS_PATH . '/img')) {
+                            mkdir(ASSETS_PATH . '/img', 0777, true);
+                        }
+
+                        if (move_uploaded_file($file_tmp, $upload_path)) {
+                            $image_url = $new_file_name; // Store just the filename
+                        } else {
+                            $errors['image'] = 'Failed to upload image file.';
+                        }
+                    } else {
+                        $errors['image'] = 'Invalid file type or size. Allowed: jpg, jpeg, png, gif (max 5MB).';
+                    }
+                } else if (!isset($_POST['current_image']) || empty($_POST['current_image'])) {
+                     // If no new image is uploaded and no current image exists (for create)
+                     // Consider making image required for new products or handle appropriately
+                     // For now, we'll allow no image on creation, but you might want to change this
                 }
+
+                // Add image_url to data if upload was successful or keeping current image
+                if ($image_url !== null) {
+                    $data['image_url'] = $image_url;
+                } else if (isset($_POST['current_image'])) {
+                     $data['image_url'] = $_POST['current_image'];
+                } else {
+                     $data['image_url'] = null; // Or a default image path
+                }
+
+                // Check for errors before creating
+                if (empty($errors)) {
+                    // Handle checkbox value (will be 'on' if checked, need boolean or 1/0)
+                    $data['featured'] = isset($data['featured']) ? 1 : 0;
+
+                    if ($productModel->create($data)) {
+                        Session::setFlash('success', 'Product created successfully');
+                    } else {
+                        Session::setFlash('error', 'Failed to create product. Database error.');
+                    }
+                } else {
+                    // Store old data and errors in session to pre-fill the form on redirect
+                    Session::set('form_errors', $errors);
+                    Session::setOld($data); // Assuming Form class has setOld method
+                    Session::setFlash('error', 'Please fix the errors in the form.');
+                }
+
+                // Redirect back to the products page
+                redirect('products.php');
                 break;
 
             case 'update':
                 // Validate and update product
-                $data = Form::sanitize($_POST);
-                if ($productModel->update($_POST['id'], $data)) {
-                    Session::setFlash('success', 'Product updated successfully');
-                } else {
-                    Session::setFlash('error', 'Failed to update product');
+                $productId = $_POST['id'] ?? null;
+                if (!$productId) {
+                    Session::setFlash('error', 'Invalid product ID for update.');
+                    redirect('products.php');
+                    break;
                 }
+
+                $data = Form::sanitize($_POST);
+                // Remove keys not meant for the UPDATE query (e.g. action, csrf_token, id)
+                unset($data['action'], $data['csrf_token'], $data['id']);
+
+                 // Define validation rules for update
+                $rules = [
+                    'name' => 'required|max:255',
+                    'category_id' => 'numeric',
+                    'description' => '',
+                    'price' => 'required|numeric',
+                    'sale_price' => 'numeric',
+                    'stock' => 'required|numeric',
+                    // For unique SKU on update, need to ignore the current product's SKU
+                    // Assuming Form::validate supports unique checks with exclusion (check Form.php)
+                    'sku' => 'required|max:50|unique:products,sku,' . $productId,
+                    'featured' => '', // Optional checkbox
+                ];
+
+                $errors = Form::validate($data, $rules);
+
+                 // Handle file upload for update (similar to create)
+                $image_url = null;
+                $current_image = $_POST['current_image'] ?? null;
+
+                if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
+                    $file = $_FILES['image'];
+                    $file_name = $file['name'];
+                    $file_tmp = $file['tmp_name'];
+                    $file_size = $file['size'];
+                    $file_error = $file['error'];
+                    $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+
+                    $allowed_extensions = ['jpg', 'jpeg', 'png', 'gif'];
+                    $max_file_size = 5 * 1024 * 1024; // 5MB
+
+                    if (in_array($file_ext, $allowed_extensions) && $file_size <= $max_file_size) {
+                        $new_file_name = uniqid('', true) . '.' . $file_ext;
+                        $upload_path = ASSETS_PATH . '/img/' . $new_file_name;
+                        
+                         // Ensure the upload directory exists
+                        if (!is_dir(ASSETS_PATH . '/img')) {
+                            mkdir(ASSETS_PATH . '/img', 0777, true);
+                        }
+
+                        if (move_uploaded_file($file_tmp, $upload_path)) {
+                            $image_url = $new_file_name; // Store just the filename
+
+                            // Delete old image if it exists and is not the new one
+                            if ($current_image && $current_image !== $image_url) {
+                                $old_image_path = ASSETS_PATH . '/img/' . $current_image;
+                                if (file_exists($old_image_path)) {
+                                    unlink($old_image_path);
+                                }
+                            }
+
+                        } else {
+                            $errors['image'] = 'Failed to upload new image file.';
+                        }
+                    } else {
+                        $errors['image'] = 'Invalid file type or size for new image. Allowed: jpg, jpeg, png, gif (max 5MB).';
+                    }
+                } else {
+                     // No new image uploaded, keep the current one if exists
+                     $image_url = $current_image;
+                }
+
+                // Add image_url to data
+                 $data['image_url'] = $image_url; // Can be null if no image
+
+                // Check for errors before updating
+                if (empty($errors)) {
+                    // Handle checkbox value
+                    $data['featured'] = isset($data['featured']) ? 1 : 0;
+
+                    // Ensure ID is in data for the update method if needed (check Model.php update method)
+                    // If update method takes ID separately, pass $productId
+
+                    if ($productModel->update($productId, $data)) {
+                        Session::setFlash('success', 'Product updated successfully');
+                    } else {
+                         Session::setFlash('error', 'Failed to update product. Database error.');
+                    }
+                } else {
+                    // Store old data and errors in session
+                    Session::set('form_errors', $errors);
+                    Session::setOld($data); // Store submitted data
+                    Session::setFlash('error', 'Please fix the errors in the form.');
+                }
+
+                // Redirect back to the products page, maybe with pagination/filters preserved
+                // For simplicity, redirecting to the base products page for now
+                redirect('products.php');
+
                 break;
 
             case 'delete':
                 // Delete product
-                if ($productModel->delete($_POST['id'])) {
-                    Session::setFlash('success', 'Product deleted successfully');
+                $productId = $_POST['id'] ?? null;
+                if ($productId) {
+                     // Get product info to delete the image file
+                    $product = $productModel->find($productId);
+
+                    if ($productModel->delete($productId)) {
+                        // Delete associated image file if exists
+                        if ($product && $product['image_url']) {
+                            $image_path = ASSETS_PATH . '/img/' . $product['image_url'];
+                            if (file_exists($image_path)) {
+                                unlink($image_path);
+                            }
+                        }
+                        Session::setFlash('success', 'Product deleted successfully');
+                    } else {
+                        Session::setFlash('error', 'Failed to delete product. Database error.');
+                    }
                 } else {
-                    Session::setFlash('error', 'Failed to delete product');
+                    Session::setFlash('error', 'Invalid product ID for deletion.');
                 }
+                
+                // Redirect back to the products page
+                redirect('products.php');
                 break;
         }
     }
@@ -56,12 +244,22 @@ $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $limit = 10;
 $offset = ($page - 1) * $limit;
 
-$products = $productModel->all();
-$totalProducts = count($products);
+// Need to update the Product model to support pagination in all() or create a new method
+// For now, slice the result from all(), which is inefficient for large datasets
+$allProducts = $productModel->all(); // This should ideally fetch with limit/offset
+$products = array_slice($allProducts, $offset, $limit);
+$totalProducts = count($allProducts); // Total count for pagination
 $totalPages = ceil($totalProducts / $limit);
 
 // Get categories for the form
 $categories = $categoryModel->all();
+
+// Handle displaying validation errors and old data after redirect
+$errors = Session::get('form_errors');
+Session::remove('form_errors');
+$old_data = Session::get('old');
+Session::remove('old');
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -135,13 +333,18 @@ $categories = $categoryModel->all();
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach (array_slice($products, $offset, $limit) as $product): ?>
+                            <?php foreach ($products as $product): ?>
                             <tr>
                                 <td><?php echo $product['id']; ?></td>
                                 <td>
-                                    <img src="<?php echo ASSETS_URL; ?>/img/<?php echo $product['image_url']; ?>" 
-                                         alt="<?php echo htmlspecialchars($product['name']); ?>"
-                                         class="product-thumbnail">
+                                    <?php if ($product['image_url']): ?>
+                                        <img src="<?php echo ASSETS_URL; ?>/img/<?php echo htmlspecialchars($product['image_url']); ?>" 
+                                             alt="<?php echo htmlspecialchars($product['name']); ?>"
+                                             class="product-thumbnail"
+                                             style="width: 50px; height: auto;">
+                                    <?php else: ?>
+                                        No Image
+                                    <?php endif; ?>
                                 </td>
                                 <td><?php echo htmlspecialchars($product['name']); ?></td>
                                 <td><?php echo htmlspecialchars($product['category_name'] ?? 'Uncategorized'); ?></td>
@@ -158,12 +361,23 @@ $categories = $categoryModel->all();
                                 </td>
                                 <td>
                                     <button class="btn btn-sm btn-info edit-product" 
-                                            data-product='<?php echo htmlspecialchars(json_encode($product)); ?>'>
-                                        <i class="fa fa-edit"></i>
+                                            data-toggle="modal" data-target="#editProductModal"
+                                            data-id="<?php echo $product['id']; ?>"
+                                            data-name="<?php echo htmlspecialchars($product['name']); ?>"
+                                            data-category_id="<?php echo htmlspecialchars($product['category_id']); ?>"
+                                            data-description="<?php echo htmlspecialchars($product['description']); ?>"
+                                            data-price="<?php echo htmlspecialchars($product['price']); ?>"
+                                            data-sale_price="<?php echo htmlspecialchars($product['sale_price']); ?>"
+                                            data-stock="<?php echo htmlspecialchars($product['stock']); ?>"
+                                            data-sku="<?php echo htmlspecialchars($product['sku']); ?>"
+                                            data-featured="<?php echo htmlspecialchars($product['featured']); ?>"
+                                            data-image_url="<?php echo htmlspecialchars($product['image_url']); ?>">
+                                        <i class="fa fa-edit"></i> Edit
                                     </button>
                                     <button class="btn btn-sm btn-danger delete-product" 
+                                            data-toggle="modal" data-target="#deleteProductModal"
                                             data-id="<?php echo $product['id']; ?>">
-                                        <i class="fa fa-trash"></i>
+                                        <i class="fa fa-trash"></i> Delete
                                     </button>
                                 </td>
                             </tr>
@@ -203,55 +417,65 @@ $categories = $categoryModel->all();
                     
                     <div class="modal-body">
                         <div class="form-group">
-                            <label>Name</label>
-                            <input type="text" name="name" class="form-control" required>
+                            <label for="add_name">Name</label>
+                            <input type="text" name="name" class="form-control" id="add_name" required value="<?php echo Form::old('name'); ?>">
+                             <?php if (isset($errors['name'])): ?><small class="form-text text-danger"><?php echo $errors['name']; ?></small><?php endif; ?>
                         </div>
                         
                         <div class="form-group">
-                            <label>Category</label>
-                            <select name="category_id" class="form-control">
+                            <label for="add_category_id">Category</label>
+                            <select name="category_id" class="form-control" id="add_category_id">
                                 <option value="">Select Category</option>
                                 <?php foreach ($categories as $category): ?>
-                                <option value="<?php echo $category['id']; ?>">
+                                <option value="<?php echo $category['id']; ?>" <?php echo Form::old('category_id') == $category['id'] ? 'selected' : ''; ?>>
                                     <?php echo htmlspecialchars($category['name']); ?>
                                 </option>
                                 <?php endforeach; ?>
                             </select>
+                             <?php if (isset($errors['category_id'])): ?><small class="form-text text-danger"><?php echo $errors['category_id']; ?></small><?php endif; ?>
                         </div>
                         
                         <div class="form-group">
-                            <label>Description</label>
-                            <textarea name="description" class="form-control" rows="3"></textarea>
+                            <label for="add_description">Description</label>
+                            <textarea name="description" class="form-control" id="add_description" rows="3"><?php echo Form::old('description'); ?></textarea>
+                             <?php if (isset($errors['description'])): ?><small class="form-text text-danger"><?php echo $errors['description']; ?></small><?php endif; ?>
                         </div>
                         
                         <div class="form-group">
-                            <label>Price</label>
-                            <input type="number" name="price" class="form-control" step="0.01" required>
+                            <label for="add_price">Price</label>
+                            <input type="number" name="price" class="form-control" id="add_price" step="0.01" required value="<?php echo Form::old('price'); ?>">
+                             <?php if (isset($errors['price'])): ?><small class="form-text text-danger"><?php echo $errors['price']; ?></small><?php endif; ?>
                         </div>
                         
                         <div class="form-group">
-                            <label>Sale Price</label>
-                            <input type="number" name="sale_price" class="form-control" step="0.01">
+                            <label for="add_sale_price">Sale Price</label>
+                            <input type="number" name="sale_price" class="form-control" id="add_sale_price" step="0.01" value="<?php echo Form::old('sale_price'); ?>">
+                             <?php if (isset($errors['sale_price'])): ?><small class="form-text text-danger"><?php echo $errors['sale_price']; ?></small><?php endif; ?>
                         </div>
                         
                         <div class="form-group">
-                            <label>Stock</label>
-                            <input type="number" name="stock" class="form-control" required>
+                            <label for="add_stock">Stock</label>
+                            <input type="number" name="stock" class="form-control" id="add_stock" required value="<?php echo Form::old('stock'); ?>">
+                             <?php if (isset($errors['stock'])): ?><small class="form-text text-danger"><?php echo $errors['stock']; ?></small><?php endif; ?>
                         </div>
                         
                         <div class="form-group">
-                            <label>SKU</label>
-                            <input type="text" name="sku" class="form-control" required>
+                            <label for="add_sku">SKU</label>
+                            <input type="text" name="sku" class="form-control" id="add_sku" required value="<?php echo Form::old('sku'); ?>">
+                             <?php if (isset($errors['sku'])): ?><small class="form-text text-danger"><?php echo $errors['sku']; ?></small><?php endif; ?>
                         </div>
                         
                         <div class="form-group">
-                            <label>Image</label>
-                            <input type="file" name="image" class="form-control" accept="image/*">
+                            <label for="add_image">Image</label>
+                            <input type="file" name="image" class="form-control" id="add_image" accept="image/*">
+                             <?php if (isset($errors['image'])): ?><small class="form-text text-danger"><?php echo $errors['image']; ?></small><?php endif; ?>
                         </div>
                         
                         <div class="form-group">
-                            <label>Featured</label>
-                            <input type="checkbox" name="featured" value="1">
+                            <label for="add_featured">
+                                <input type="checkbox" name="featured" id="add_featured" value="1" <?php echo Form::old('featured') ? 'checked' : ''; ?>> Featured
+                            </label>
+                             <?php if (isset($errors['featured'])): ?><small class="form-text text-danger"><?php echo $errors['featured']; ?></small><?php endif; ?>
                         </div>
                     </div>
                     
@@ -266,7 +490,92 @@ $categories = $categoryModel->all();
 
     <!-- Edit Product Modal -->
     <div class="modal fade" id="editProductModal" tabindex="-1">
-        <!-- Similar structure to Add Product Modal -->
+        <div class="modal-dialog">
+            <div class="modal-content">
+                 <form action="" method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="action" value="update">
+                    <input type="hidden" name="id" id="edit_product_id">
+                    <input type="hidden" name="csrf_token" value="<?php echo Form::generateCSRFToken(); ?>">
+                     <input type="hidden" name="current_image" id="edit_current_image">
+                    
+                    <div class="modal-header">
+                        <h5 class="modal-title">Edit Product</h5>
+                        <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    </div>
+                    
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="edit_name">Name</label>
+                            <input type="text" name="name" class="form-control" id="edit_name" required value="<?php echo Form::old('name'); ?>">
+                            <?php if (isset($errors['name'])): ?><small class="form-text text-danger"><?php echo $errors['name']; ?></small><?php endif; ?>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="edit_category_id">Category</label>
+                            <select name="category_id" class="form-control" id="edit_category_id">
+                                <option value="">Select Category</option>
+                                <?php foreach ($categories as $category): ?>
+                                <option value="<?php echo $category['id']; ?>" <?php echo Form::old('category_id') == $category['id'] ? 'selected' : ''; ?>>
+                                    <?php echo htmlspecialchars($category['name']); ?>
+                                </option>
+                                <?php endforeach; ?>
+                            </select>
+                             <?php if (isset($errors['category_id'])): ?><small class="form-text text-danger"><?php echo $errors['category_id']; ?></small><?php endif; ?>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="edit_description">Description</label>
+                            <textarea name="description" class="form-control" id="edit_description" rows="3"><?php echo Form::old('description'); ?></textarea>
+                             <?php if (isset($errors['description'])): ?><small class="form-text text-danger"><?php echo $errors['description']; ?></small><?php endif; ?>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="edit_price">Price</label>
+                            <input type="number" name="price" class="form-control" id="edit_price" step="0.01" required value="<?php echo Form::old('price'); ?>">
+                             <?php if (isset($errors['price'])): ?><small class="form-text text-danger"><?php echo $errors['price']; ?></small><?php endif; ?>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="edit_sale_price">Sale Price</label>
+                            <input type="number" name="sale_price" class="form-control" id="edit_sale_price" step="0.01" value="<?php echo Form::old('sale_price'); ?>">
+                             <?php if (isset($errors['sale_price'])): ?><small class="form-text text-danger"><?php echo $errors['sale_price']; ?></small><?php endif; ?>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="edit_stock">Stock</label>
+                            <input type="number" name="stock" class="form-control" id="edit_stock" required value="<?php echo Form::old('stock'); ?>">
+                             <?php if (isset($errors['stock'])): ?><small class="form-text text-danger"><?php echo $errors['stock']; ?></small><?php endif; ?>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="edit_sku">SKU</label>
+                            <input type="text" name="sku" class="form-control" id="edit_sku" required value="<?php echo Form::old('sku'); ?>">
+                             <?php if (isset($errors['sku'])): ?><small class="form-text text-danger"><?php echo $errors['sku']; ?></small><?php endif; ?>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="edit_image">Image</label>
+                            <input type="file" name="image" class="form-control" id="edit_image" accept="image/*">
+                             <?php if (isset($errors['image'])): ?><small class="form-text text-danger"><?php echo $errors['image']; ?></small><?php endif; ?>
+                            <?php // Display current image if exists ?>
+                            <div id="edit_current_image_preview" style="margin-top: 10px;"></div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="edit_featured">
+                                <input type="checkbox" name="featured" id="edit_featured" value="1" <?php echo Form::old('featured') ? 'checked' : ''; ?>> Featured
+                            </label>
+                             <?php if (isset($errors['featured'])): ?><small class="form-text text-danger"><?php echo $errors['featured']; ?></small><?php endif; ?>
+                        </div>
+                    </div>
+                    
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 
     <!-- Delete Product Modal -->
@@ -300,5 +609,55 @@ $categories = $categoryModel->all();
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
     <script src="<?php echo ASSETS_URL; ?>/js/vendor/bootstrap.min.js"></script>
     <script src="<?php echo ASSETS_URL; ?>/js/admin.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            // Populate Edit Product Modal when edit button is clicked
+            $('.edit-product').on('click', function() {
+                // Use data-* attributes (e.g. data-id, data-name, data-category_id, etc.) to populate the edit modal.
+                var id = $(this).data('id');
+                var name = $(this).data('name');
+                var category_id = $(this).data('category_id');
+                var description = $(this).data('description');
+                var price = $(this).data('price');
+                var sale_price = $(this).data('sale_price');
+                var stock = $(this).data('stock');
+                var sku = $(this).data('sku');
+                var featured = $(this).data('featured');
+                var image_url = $(this).data('image_url');
+
+                $('#edit_product_id').val(id);
+                $('#edit_name').val(name);
+                $('#edit_category_id').val(category_id);
+                $('#edit_description').val(description);
+                $('#edit_price').val(price);
+                $('#edit_sale_price').val(sale_price);
+                $('#edit_stock').val(stock);
+                $('#edit_sku').val(sku);
+                $('#edit_featured').prop('checked', featured == 1);
+                $('#edit_current_image').val(image_url);
+
+                // Display current image preview (if image_url is present)
+                var imagePreview = $('#edit_current_image_preview');
+                 imagePreview.empty();
+                 if (image_url) {
+                     imagePreview.append('<img src="<?php echo ASSETS_URL; ?>/img/' + image_url + '" alt="Current Image" style="max-width: 100px; height: auto;">');
+                 }
+            });
+
+            // Populate Delete Product Modal when delete button is clicked
+            $('.delete-product').on('click', function() {
+                var productId = $(this).data('id');
+                $('#deleteProductId').val(productId);
+            });
+
+             // Re-show validation errors on modal after redirect
+            <?php if (!empty($errors)): ?>
+                $('#addProductModal').modal('show'); // Assuming errors are for add modal
+                // You might need logic here to determine which modal had errors (add or edit)
+                // For simplicity, assuming add modal for now.
+            <?php endif; ?>
+        });
+    </script>
 </body>
 </html>

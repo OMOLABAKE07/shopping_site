@@ -198,16 +198,145 @@ $categories = $categoryModel->getAll();
     <style>
         .admin-main { padding: 20px; }
         .card { box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .table th, .table td { vertical-align: middle; }
-        .btn-sm { margin-right: 5px; }
-        .modal-header { background-color: #f8f9fa; }
-        .product-table { width: 100%; }
-        .action-buttons { white-space: nowrap; }
-        .product-image { max-width: 50px; max-height: 50px; }
-        .product-image-preview { max-width: 200px; max-height: 200px; }
+        .table-responsive {
+            margin: 0;
+            padding: 0;
+        }
+        .product-table {
+            margin-bottom: 0;
+        }
+        .product-name {
+            font-weight: 500;
+            margin-bottom: 2px;
+            display: flex;
+            align-items: center;
+        }
+        .product-image {
+            max-width: 50px;
+            max-height: 50px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+        .product-image-preview {
+            max-width: 200px;
+            max-height: 200px;
+            object-fit: contain;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        .action-buttons {
+            white-space: nowrap;
+        }
+        .action-buttons .btn-group {
+            display: flex;
+            gap: 2px;
+        }
+        .action-buttons .btn {
+            padding: 0.25rem 0.5rem;
+        }
+        .badge {
+            padding: 0.5em 0.75em;
+            font-size: 0.75em;
+        }
+        .table td {
+            vertical-align: middle;
+        }
+        .text-danger {
+            color: #dc3545 !important;
+        }
+        .text-decoration-line-through {
+            text-decoration: line-through;
+        }
+        .form-text {
+            font-size: 0.875rem;
+        }
+        .custom-control {
+            padding-left: 1.75rem;
+        }
+
+        /* Mobile-specific styles */
         @media (max-width: 768px) {
-            .admin-main { padding: 10px; }
-            .action-buttons .btn { margin-bottom: 5px; }
+            .admin-main {
+                padding: 10px;
+            }
+            .card-body {
+                padding: 10px;
+            }
+            .table td, .table th {
+                padding: 0.5rem;
+            }
+            .action-buttons .btn-group {
+                flex-direction: column;
+            }
+            .action-buttons .btn {
+                margin: 1px 0;
+                width: 100%;
+            }
+            .badge {
+                padding: 0.4em 0.6em;
+                font-size: 0.7em;
+            }
+            .product-name {
+                font-size: 0.9rem;
+            }
+            .small {
+                font-size: 0.8rem;
+            }
+        }
+
+        /* Ensure table is scrollable on mobile */
+        @media (max-width: 576px) {
+            .table-responsive {
+                border: 0;
+                margin-bottom: 0;
+            }
+            .table {
+                margin-bottom: 0;
+            }
+            .table td, .table th {
+                white-space: nowrap;
+            }
+            .product-name {
+                white-space: normal;
+            }
+        }
+
+        .product-image-container {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 4px;
+            border: 1px solid #dee2e6;
+        }
+
+        .product-details .row {
+            margin-bottom: 0.5rem;
+        }
+
+        .product-details .font-weight-bold {
+            color: #495057;
+        }
+
+        #viewProductModal .modal-body {
+            padding: 1.5rem;
+        }
+
+        #viewProductModal .badge {
+            font-size: 0.875rem;
+            padding: 0.5em 0.75em;
+        }
+
+        @media (max-width: 768px) {
+            .product-image-container {
+                margin-bottom: 1rem;
+            }
+            
+            .product-details .row {
+                margin-bottom: 0.75rem;
+            }
+            
+            .product-details .font-weight-bold {
+                margin-bottom: 0.25rem;
+            }
         }
     </style>
 
@@ -231,25 +360,28 @@ $categories = $categoryModel->getAll();
 
             <div class="card">
                 <div class="card-body">
-                    <table class="table table-hover product-table">
-                        <thead>
-                            <tr>
-                                <th>Image</th>
-                                <th>Name</th>
-                                <th>Category</th>
-                                <th>Price</th>
-                                <th>Stock</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="productTableBody">
-                            <?php foreach ($products as $product): ?>
+                    <div class="table-responsive">
+                        <table class="table table-hover product-table">
+                            <thead>
                                 <tr>
-                                    <td>
+                                    <th class="d-none d-md-table-cell">Image</th>
+                                    <th>Name</th>
+                                    <th class="d-none d-md-table-cell">Category</th>
+                                    <th class="d-none d-lg-table-cell">SKU</th>
+                                    <th>Price</th>
+                                    <th class="d-none d-md-table-cell">Stock</th>
+                                    <th>Status</th>
+                                    <th class="d-none d-lg-table-cell">Featured</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="productTableBody">
+                                <?php foreach ($products as $product): ?>
+                                <tr>
+                                    <td class="d-none d-md-table-cell">
                                         <?php if (!empty($product['image_url'])): ?>
                                             <img src="<?php echo htmlspecialchars($product['image_url']); ?>" 
-                                                 alt="<?php echo htmlspecialchars($product['name']); ?>" 
+                                                 alt="<?php echo htmlspecialchars($product['name']); ?>"
                                                  class="product-image">
                                         <?php else: ?>
                                             <img src="<?php echo ASSETS_URL; ?>/img/no-image.png" 
@@ -257,38 +389,79 @@ $categories = $categoryModel->getAll();
                                                  class="product-image">
                                         <?php endif; ?>
                                     </td>
-                                    <td><?php echo htmlspecialchars($product['name']); ?></td>
-                                    <td><?php echo htmlspecialchars($product['category_name'] ?? 'Uncategorized'); ?></td>
                                     <td>
-                                        <?php if (!empty($product['sale_price'])): ?>
-                                            <span class="text-muted text-decoration-line-through">
-                                                $<?php echo number_format($product['price'], 2); ?>
-                                            </span>
-                                            <span class="text-danger">
-                                                $<?php echo number_format($product['sale_price'], 2); ?>
-                                            </span>
-                                        <?php else: ?>
-                                            $<?php echo number_format($product['price'], 2); ?>
+                                        <div class="product-name">
+                                            <?php if (!empty($product['image_url'])): ?>
+                                                <img src="<?php echo htmlspecialchars($product['image_url']); ?>" 
+                                                     alt="<?php echo htmlspecialchars($product['name']); ?>"
+                                                     class="product-image d-md-none mr-2" style="width: 30px; height: 30px;">
+                                            <?php endif; ?>
+                                            <?php echo htmlspecialchars($product['name']); ?>
+                                        </div>
+                                        <div class="d-md-none small text-muted">
+                                            <?php echo htmlspecialchars($product['category_name'] ?? 'Uncategorized'); ?>
+                                        </div>
+                                        <?php if (!empty($product['description'])): ?>
+                                            <small class="text-muted d-none d-md-block"><?php echo htmlspecialchars(substr($product['description'], 0, 50)) . '...'; ?></small>
                                         <?php endif; ?>
                                     </td>
-                                    <td><?php echo (int)$product['stock']; ?></td>
+                                    <td class="d-none d-md-table-cell"><?php echo htmlspecialchars($product['category_name'] ?? 'Uncategorized'); ?></td>
+                                    <td class="d-none d-lg-table-cell"><?php echo htmlspecialchars($product['sku'] ?? '-'); ?></td>
+                                    <td>
+                                        <?php if (!empty($product['sale_price'])): ?>
+                                            <div class="text-danger font-weight-bold">
+                                                $<?php echo number_format($product['sale_price'], 2); ?>
+                                            </div>
+                                            <small class="text-muted text-decoration-line-through">
+                                                $<?php echo number_format($product['price'], 2); ?>
+                                            </small>
+                                        <?php else: ?>
+                                            <div class="font-weight-bold">
+                                                $<?php echo number_format($product['price'], 2); ?>
+                                            </div>
+                                        <?php endif; ?>
+                                        <div class="d-md-none small">
+                                            Stock: <span class="badge badge-<?php echo (int)$product['stock'] > 10 ? 'success' : ((int)$product['stock'] > 0 ? 'warning' : 'danger'); ?>">
+                                                <?php echo (int)$product['stock']; ?>
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td class="d-none d-md-table-cell">
+                                        <span class="badge badge-<?php echo (int)$product['stock'] > 10 ? 'success' : ((int)$product['stock'] > 0 ? 'warning' : 'danger'); ?>">
+                                            <?php echo (int)$product['stock']; ?>
+                                        </span>
+                                    </td>
                                     <td>
                                         <span class="badge badge-<?php echo $product['status'] === 'active' ? 'success' : 'secondary'; ?>">
                                             <?php echo ucfirst($product['status']); ?>
                                         </span>
+                                        <?php if ($product['featured']): ?>
+                                            <span class="badge badge-info d-lg-none"><i class="fa fa-star"></i></span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="d-none d-lg-table-cell">
+                                        <?php if ($product['featured']): ?>
+                                            <span class="badge badge-info"><i class="fa fa-star"></i> Featured</span>
+                                        <?php endif; ?>
                                     </td>
                                     <td class="action-buttons">
-                                        <button class="btn btn-sm btn-warning edit-btn" data-id="<?php echo $product['id']; ?>">
-                                            <i class="fa fa-edit"></i> Edit
-                                        </button>
-                                        <button class="btn btn-sm btn-danger delete-btn" data-id="<?php echo $product['id']; ?>">
-                                            <i class="fa fa-trash"></i> Delete
-                                        </button>
+                                        <div class="btn-group">
+                                            <button class="btn btn-sm btn-info view-btn" data-id="<?php echo $product['id']; ?>" title="View Details">
+                                                <i class="fa fa-eye"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-warning edit-btn" data-id="<?php echo $product['id']; ?>" title="Edit Product">
+                                                <i class="fa fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-danger delete-btn" data-id="<?php echo $product['id']; ?>" title="Delete Product">
+                                                <i class="fa fa-trash"></i>
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
@@ -307,11 +480,11 @@ $categories = $categoryModel->getAll();
                                 <div class="row">
                                     <div class="col-md-6">
                                         <div class="form-group">
-                                            <label for="productName">Product Name</label>
+                                            <label for="productName">Product Name <span class="text-danger">*</span></label>
                                             <input type="text" class="form-control" id="productName" name="name" required>
                                         </div>
                                         <div class="form-group">
-                                            <label for="productCategory">Category</label>
+                                            <label for="productCategory">Category <span class="text-danger">*</span></label>
                                             <select class="form-control" id="productCategory" name="category_id" required>
                                                 <option value="">Select Category</option>
                                                 <?php foreach ($categories as $category): ?>
@@ -322,31 +495,45 @@ $categories = $categoryModel->getAll();
                                             </select>
                                         </div>
                                         <div class="form-group">
-                                            <label for="productPrice">Price</label>
-                                            <input type="number" class="form-control" id="productPrice" name="price" step="0.01" min="0" required>
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="productSalePrice">Sale Price (Optional)</label>
-                                            <input type="number" class="form-control" id="productSalePrice" name="sale_price" step="0.01" min="0">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="productStock">Stock</label>
-                                            <input type="number" class="form-control" id="productStock" name="stock" min="0" value="0">
-                                        </div>
-                                        <div class="form-group">
                                             <label for="productSku">SKU</label>
-                                            <input type="text" class="form-control" id="productSku" name="sku">
+                                            <input type="text" class="form-control" id="productSku" name="sku" placeholder="Enter product SKU">
+                                            <small class="form-text text-muted">Leave blank to auto-generate</small>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="productPrice">Regular Price <span class="text-danger">*</span></label>
+                                            <div class="input-group">
+                                                <div class="input-group-prepend">
+                                                    <span class="input-group-text">$</span>
+                                                </div>
+                                                <input type="number" class="form-control" id="productPrice" name="price" step="0.01" min="0" required>
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="productSalePrice">Sale Price</label>
+                                            <div class="input-group">
+                                                <div class="input-group-prepend">
+                                                    <span class="input-group-text">$</span>
+                                                </div>
+                                                <input type="number" class="form-control" id="productSalePrice" name="sale_price" step="0.01" min="0">
+                                            </div>
+                                            <small class="form-text text-muted">Leave empty if no sale price</small>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
                                         <div class="form-group">
+                                            <label for="productStock">Stock Quantity</label>
+                                            <input type="number" class="form-control" id="productStock" name="stock" min="0" value="0">
+                                            <small class="form-text text-muted">Enter 0 for out of stock</small>
+                                        </div>
+                                        <div class="form-group">
                                             <label for="productDescription">Description</label>
-                                            <textarea class="form-control" id="productDescription" name="description" rows="4"></textarea>
+                                            <textarea class="form-control" id="productDescription" name="description" rows="4" placeholder="Enter product description"></textarea>
                                         </div>
                                         <div class="form-group">
                                             <label for="productImage">Product Image</label>
                                             <input type="file" class="form-control" id="productImage" name="image" accept="image/*">
                                             <img id="imagePreview" src="#" alt="Preview" class="product-image-preview mt-2" style="display: none;">
+                                            <small class="form-text text-muted">Recommended size: 800x800 pixels</small>
                                         </div>
                                         <div class="form-group">
                                             <label for="productStatus">Status</label>
@@ -359,6 +546,7 @@ $categories = $categoryModel->getAll();
                                             <div class="custom-control custom-checkbox">
                                                 <input type="checkbox" class="custom-control-input" id="productFeatured" name="featured">
                                                 <label class="custom-control-label" for="productFeatured">Featured Product</label>
+                                                <small class="form-text text-muted d-block">Featured products will be highlighted on the homepage</small>
                                             </div>
                                         </div>
                                     </div>
@@ -366,7 +554,7 @@ $categories = $categoryModel->getAll();
                             </form>
                         </div>
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
                             <button type="button" class="btn btn-primary" id="saveProductBtn">Save Product</button>
                         </div>
                     </div>
@@ -450,6 +638,75 @@ $categories = $categoryModel->getAll();
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
                             <button type="button" class="btn btn-primary" id="updateProductBtn">Update Product</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add View Product Modal -->
+            <div class="modal fade" id="viewProductModal" tabindex="-1" role="dialog" aria-labelledby="viewProductModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="viewProductModalLabel">Product Details</h5>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="product-image-container text-center mb-3">
+                                        <img id="viewProductImage" src="" alt="Product Image" class="img-fluid product-image-preview">
+                                    </div>
+                                </div>
+                                <div class="col-md-8">
+                                    <h4 id="viewProductName" class="mb-3"></h4>
+                                    <div class="product-details">
+                                        <div class="row mb-2">
+                                            <div class="col-sm-4 font-weight-bold">Category:</div>
+                                            <div class="col-sm-8" id="viewProductCategory"></div>
+                                        </div>
+                                        <div class="row mb-2">
+                                            <div class="col-sm-4 font-weight-bold">SKU:</div>
+                                            <div class="col-sm-8" id="viewProductSku"></div>
+                                        </div>
+                                        <div class="row mb-2">
+                                            <div class="col-sm-4 font-weight-bold">Price:</div>
+                                            <div class="col-sm-8">
+                                                <span id="viewProductPrice"></span>
+                                                <span id="viewProductSalePrice" class="text-danger ml-2"></span>
+                                            </div>
+                                        </div>
+                                        <div class="row mb-2">
+                                            <div class="col-sm-4 font-weight-bold">Stock:</div>
+                                            <div class="col-sm-8">
+                                                <span id="viewProductStock" class="badge"></span>
+                                            </div>
+                                        </div>
+                                        <div class="row mb-2">
+                                            <div class="col-sm-4 font-weight-bold">Status:</div>
+                                            <div class="col-sm-8">
+                                                <span id="viewProductStatus" class="badge"></span>
+                                            </div>
+                                        </div>
+                                        <div class="row mb-2">
+                                            <div class="col-sm-4 font-weight-bold">Featured:</div>
+                                            <div class="col-sm-8">
+                                                <span id="viewProductFeatured" class="badge badge-info"></span>
+                                            </div>
+                                        </div>
+                                        <div class="row mb-2">
+                                            <div class="col-sm-4 font-weight-bold">Description:</div>
+                                            <div class="col-sm-8" id="viewProductDescription"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                            <button type="button" class="btn btn-warning" id="editFromViewBtn">Edit Product</button>
                         </div>
                     </div>
                 </div>
@@ -612,6 +869,80 @@ $categories = $categoryModel->getAll();
                         }
                     });
                 }
+            });
+
+            // View product details
+            $(document).on('click', '.view-btn', function() {
+                const id = $(this).data('id');
+                const row = $(this).closest('tr');
+                
+                // Get product data from the row
+                const productData = {
+                    id: id,
+                    name: row.find('.product-name').text().trim(),
+                    category: row.find('td:eq(2)').text().trim(),
+                    sku: row.find('td:eq(3)').text().trim(),
+                    price: row.find('td:eq(4) .font-weight-bold').text().trim(),
+                    salePrice: row.find('td:eq(4) .text-decoration-line-through').text().trim(),
+                    stock: row.find('.badge').first().text().trim(),
+                    status: row.find('td:eq(6) .badge').text().trim(),
+                    featured: row.find('.badge-info').length > 0,
+                    description: row.find('.text-muted').text().trim(),
+                    image: row.find('.product-image').attr('src')
+                };
+
+                // Populate the view modal
+                $('#viewProductImage').attr('src', productData.image || '<?php echo ASSETS_URL; ?>/img/no-image.png');
+                $('#viewProductName').text(productData.name);
+                $('#viewProductCategory').text(productData.category);
+                $('#viewProductSku').text(productData.sku || '-');
+                
+                // Handle price display
+                if (productData.salePrice) {
+                    $('#viewProductPrice').html('<span class="text-decoration-line-through text-muted">' + productData.salePrice + '</span>');
+                    $('#viewProductSalePrice').text(productData.price);
+                } else {
+                    $('#viewProductPrice').text(productData.price);
+                    $('#viewProductSalePrice').text('');
+                }
+
+                // Set stock with appropriate badge color
+                const stockBadge = $('#viewProductStock');
+                const stockNum = parseInt(productData.stock);
+                stockBadge.text(productData.stock);
+                stockBadge.removeClass('badge-success badge-warning badge-danger')
+                        .addClass(stockNum > 10 ? 'badge-success' : (stockNum > 0 ? 'badge-warning' : 'badge-danger'));
+
+                // Set status badge
+                const statusBadge = $('#viewProductStatus');
+                statusBadge.text(productData.status)
+                          .removeClass('badge-success badge-secondary')
+                          .addClass(productData.status === 'active' ? 'badge-success' : 'badge-secondary');
+
+                // Set featured status
+                const featuredBadge = $('#viewProductFeatured');
+                if (productData.featured) {
+                    featuredBadge.html('<i class="fa fa-star"></i> Featured').show();
+                } else {
+                    featuredBadge.hide();
+                }
+
+                // Set description
+                $('#viewProductDescription').text(productData.description || 'No description available');
+
+                // Store product ID for edit button
+                $('#editFromViewBtn').data('id', id);
+
+                // Show the modal
+                $('#viewProductModal').modal('show');
+            });
+
+            // Edit from view modal
+            $('#editFromViewBtn').click(function() {
+                const id = $(this).data('id');
+                $('#viewProductModal').modal('hide');
+                // Trigger the edit button click for this product
+                $(`.edit-btn[data-id="${id}"]`).click();
             });
         });
     </script>

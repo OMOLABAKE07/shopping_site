@@ -111,18 +111,27 @@ class Product extends Model {
     }
 
     public function getAll($params = []) {
-        $category_id = $params['category_id'] ?? null;
-        $search = $params['search'] ?? '';
-        $sort = $params['sort'] ?? 'name_asc';
-        $page = $params['page'] ?? 1;
-        $per_page = $params['per_page'] ?? 12;
+        // Default parameters with validation
+        $category_id = filter_var($params['category_id'] ?? null, FILTER_VALIDATE_INT);
+        $search = trim($params['search'] ?? '');
+        $sort = $this->validateSort($params['sort'] ?? 'name_asc');
+        $page = max(1, filter_var($params['page'] ?? 1, FILTER_VALIDATE_INT));
+        $per_page = max(1, min(50, filter_var($params['per_page'] ?? 12, FILTER_VALIDATE_INT)));
+        $min_price = filter_var($params['min_price'] ?? null, FILTER_VALIDATE_FLOAT);
+        $max_price = filter_var($params['max_price'] ?? null, FILTER_VALIDATE_FLOAT);
+        $in_stock = filter_var($params['in_stock'] ?? null, FILTER_VALIDATE_BOOLEAN);
+        $featured = filter_var($params['featured'] ?? null, FILTER_VALIDATE_BOOLEAN);
+        
         $offset = ($page - 1) * $per_page;
 
-        // Base query
-        $sql = "SELECT p.*, c.name as category_name 
+        // Base query with joins for related data
+        $sql = "SELECT p.*, c.name as category_name,
+                (SELECT COUNT(*) FROM reviews r WHERE r.product_id = p.id AND r.status = 'approved') as review_count,
+                (SELECT AVG(rating) FROM reviews r WHERE r.product_id = p.id AND r.status = 'approved') as average_rating
                 FROM {$this->table} p 
                 LEFT JOIN categories c ON p.category_id = c.id 
                 WHERE p.status = 'active'";
+        
         $types = '';
         $values = [];
 
@@ -133,29 +142,48 @@ class Product extends Model {
             $values[] = $category_id;
         }
 
-        // Add search filter
+        // Add search filter with improved relevance
         if ($search) {
-            $sql .= " AND (p.name LIKE ? OR p.description LIKE ?)";
-            $types .= 'ss';
+            $sql .= " AND (
+                p.name LIKE ? 
+                OR p.description LIKE ? 
+                OR p.sku LIKE ?
+                OR c.name LIKE ?
+            )";
+            $types .= 'ssss';
             $searchTerm = "%{$search}%";
+            $values[] = $searchTerm;
+            $values[] = $searchTerm;
             $values[] = $searchTerm;
             $values[] = $searchTerm;
         }
 
-        // Add sorting
-        switch ($sort) {
-            case 'name_desc':
-                $sql .= " ORDER BY p.name DESC";
-                break;
-            case 'price_asc':
-                $sql .= " ORDER BY p.price ASC";
-                break;
-            case 'price_desc':
-                $sql .= " ORDER BY p.price DESC";
-                break;
-            default: // name_asc
-                $sql .= " ORDER BY p.name ASC";
+        // Add price range filter
+        if ($min_price !== null) {
+            $sql .= " AND p.price >= ?";
+            $types .= 'd';
+            $values[] = $min_price;
         }
+        if ($max_price !== null) {
+            $sql .= " AND p.price <= ?";
+            $types .= 'd';
+            $values[] = $max_price;
+        }
+
+        // Add stock filter
+        if ($in_stock !== null) {
+            $sql .= $in_stock ? " AND p.stock > 0" : " AND p.stock = 0";
+        }
+
+        // Add featured filter
+        if ($featured !== null) {
+            $sql .= " AND p.featured = ?";
+            $types .= 'i';
+            $values[] = $featured ? 1 : 0;
+        }
+
+        // Add sorting with improved options
+        $sql .= $this->getSortClause($sort);
 
         // Add pagination
         $sql .= " LIMIT ? OFFSET ?";
@@ -171,36 +199,74 @@ class Product extends Model {
         $result = $stmt->get_result();
         $products = [];
         while ($row = $result->fetch_assoc()) {
+            // Format numeric values
+            $row['average_rating'] = round($row['average_rating'], 1);
+            $row['price'] = (float)$row['price'];
+            $row['sale_price'] = $row['sale_price'] ? (float)$row['sale_price'] : null;
             $products[] = $row;
         }
         return $products;
     }
 
     public function getCount($params = []) {
-        $category_id = $params['category_id'] ?? null;
-        $search = $params['search'] ?? '';
+        // Reuse the same parameter processing as getAll
+        $category_id = filter_var($params['category_id'] ?? null, FILTER_VALIDATE_INT);
+        $search = trim($params['search'] ?? '');
+        $min_price = filter_var($params['min_price'] ?? null, FILTER_VALIDATE_FLOAT);
+        $max_price = filter_var($params['max_price'] ?? null, FILTER_VALIDATE_FLOAT);
+        $in_stock = filter_var($params['in_stock'] ?? null, FILTER_VALIDATE_BOOLEAN);
+        $featured = filter_var($params['featured'] ?? null, FILTER_VALIDATE_BOOLEAN);
 
         // Base query
-        $sql = "SELECT COUNT(*) as total 
+        $sql = "SELECT COUNT(DISTINCT p.id) as total 
                 FROM {$this->table} p 
+                LEFT JOIN categories c ON p.category_id = c.id 
                 WHERE p.status = 'active'";
+        
         $types = '';
         $values = [];
 
-        // Add category filter
+        // Add the same filters as getAll
         if ($category_id) {
             $sql .= " AND p.category_id = ?";
             $types .= 'i';
             $values[] = $category_id;
         }
 
-        // Add search filter
         if ($search) {
-            $sql .= " AND (p.name LIKE ? OR p.description LIKE ?)";
-            $types .= 'ss';
+            $sql .= " AND (
+                p.name LIKE ? 
+                OR p.description LIKE ? 
+                OR p.sku LIKE ?
+                OR c.name LIKE ?
+            )";
+            $types .= 'ssss';
             $searchTerm = "%{$search}%";
             $values[] = $searchTerm;
             $values[] = $searchTerm;
+            $values[] = $searchTerm;
+            $values[] = $searchTerm;
+        }
+
+        if ($min_price !== null) {
+            $sql .= " AND p.price >= ?";
+            $types .= 'd';
+            $values[] = $min_price;
+        }
+        if ($max_price !== null) {
+            $sql .= " AND p.price <= ?";
+            $types .= 'd';
+            $values[] = $max_price;
+        }
+
+        if ($in_stock !== null) {
+            $sql .= $in_stock ? " AND p.stock > 0" : " AND p.stock = 0";
+        }
+
+        if ($featured !== null) {
+            $sql .= " AND p.featured = ?";
+            $types .= 'i';
+            $values[] = $featured ? 1 : 0;
         }
 
         $stmt = $this->db->prepare($sql);
@@ -210,6 +276,76 @@ class Product extends Model {
         $stmt->execute();
         $result = $stmt->get_result();
         $row = $result->fetch_assoc();
-        return $row['total'];
+        return (int)$row['total'];
+    }
+
+    /**
+     * Get pagination metadata
+     * @param array $params Query parameters
+     * @return array Pagination metadata
+     */
+    public function getPaginationMeta($params = []) {
+        $total = $this->getCount($params);
+        $page = max(1, filter_var($params['page'] ?? 1, FILTER_VALIDATE_INT));
+        $per_page = max(1, min(50, filter_var($params['per_page'] ?? 12, FILTER_VALIDATE_INT)));
+        
+        $total_pages = ceil($total / $per_page);
+        $page = min($page, max(1, $total_pages)); // Ensure page is within valid range
+        
+        return [
+            'current_page' => $page,
+            'per_page' => $per_page,
+            'total_items' => $total,
+            'total_pages' => $total_pages,
+            'has_next_page' => $page < $total_pages,
+            'has_prev_page' => $page > 1,
+            'next_page' => $page < $total_pages ? $page + 1 : null,
+            'prev_page' => $page > 1 ? $page - 1 : null,
+            'offset' => ($page - 1) * $per_page
+        ];
+    }
+
+    /**
+     * Validate and return sort parameter
+     * @param string $sort Sort parameter
+     * @return string Validated sort parameter
+     */
+    private function validateSort($sort) {
+        $validSorts = [
+            'name_asc', 'name_desc',
+            'price_asc', 'price_desc',
+            'created_desc', 'created_asc',
+            'rating_desc', 'rating_asc',
+            'popularity_desc'
+        ];
+        return in_array($sort, $validSorts) ? $sort : 'name_asc';
+    }
+
+    /**
+     * Get SQL ORDER BY clause based on sort parameter
+     * @param string $sort Sort parameter
+     * @return string SQL ORDER BY clause
+     */
+    private function getSortClause($sort) {
+        switch ($sort) {
+            case 'name_desc':
+                return " ORDER BY p.name DESC";
+            case 'price_asc':
+                return " ORDER BY COALESCE(p.sale_price, p.price) ASC";
+            case 'price_desc':
+                return " ORDER BY COALESCE(p.sale_price, p.price) DESC";
+            case 'created_desc':
+                return " ORDER BY p.created_at DESC";
+            case 'created_asc':
+                return " ORDER BY p.created_at ASC";
+            case 'rating_desc':
+                return " ORDER BY (SELECT AVG(rating) FROM reviews r WHERE r.product_id = p.id AND r.status = 'approved') DESC";
+            case 'rating_asc':
+                return " ORDER BY (SELECT AVG(rating) FROM reviews r WHERE r.product_id = p.id AND r.status = 'approved') ASC";
+            case 'popularity_desc':
+                return " ORDER BY (SELECT COUNT(*) FROM order_items oi WHERE oi.product_id = p.id) DESC";
+            default: // name_asc
+                return " ORDER BY p.name ASC";
+        }
     }
 }

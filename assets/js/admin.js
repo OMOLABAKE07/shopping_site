@@ -1,4 +1,4 @@
-Admin.js$(document).ready(function() {
+$(document).ready(function() {
     // Handle product edit button click
     $('.edit-product').click(function() {
         var product = $(this).data('product');

@@ -3,9 +3,72 @@ require_once 'Model.php';
 
 class Category extends Model {
     protected $table = 'categories';
+    protected $fillable = ['name', 'description', 'parent_id'];
 
     public function __construct() {
         parent::__construct();
+    }
+
+    /**
+     * Get all categories with optional parent category information
+     */
+    public function getAllWithParent() {
+        $sql = "SELECT c.*, p.name as parent_name 
+                FROM categories c 
+                LEFT JOIN categories p ON c.parent_id = p.id 
+                ORDER BY c.name";
+        return $this->db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Get a category by ID with its parent information
+     */
+    public function getByIdWithParent($id) {
+        $sql = "SELECT c.*, p.name as parent_name 
+                FROM categories c 
+                LEFT JOIN categories p ON c.parent_id = p.id 
+                WHERE c.id = :id";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute(['id' => $id]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Get all parent categories (categories that don't have a parent)
+     */
+    public function getParentCategories() {
+        $sql = "SELECT * FROM categories WHERE parent_id IS NULL ORDER BY name";
+        return $this->db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Get child categories for a given parent ID
+     */
+    public function getChildCategories($parentId) {
+        $sql = "SELECT * FROM categories WHERE parent_id = :parent_id ORDER BY name";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute(['parent_id' => $parentId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Check if a category has any child categories
+     */
+    public function hasChildren($id) {
+        $sql = "SELECT COUNT(*) FROM categories WHERE parent_id = :id";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute(['id' => $id]);
+        return $stmt->fetchColumn() > 0;
+    }
+
+    /**
+     * Check if a category has any associated products
+     */
+    public function hasProducts($id) {
+        $sql = "SELECT COUNT(*) FROM products WHERE category_id = :id";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute(['id' => $id]);
+        return $stmt->fetchColumn() > 0;
     }
 
     public function getAll() {

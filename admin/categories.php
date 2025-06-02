@@ -11,10 +11,87 @@ if (!Session::isLoggedIn() || (Session::getCurrentUser()['role'] ?? '') !== 'adm
     redirect('login.php'); // Or a dedicated access denied page
 }
 
-// --- Page Specific Logic Here ---
-// Example: Fetch categories from the database
-// $categoryModel = new Category();
-// $categories = $categoryModel->all();
+// Initialize Category model
+$categoryModel = new Category();
+
+// Handle AJAX requests
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    header('Content-Type: application/json');
+    $response = ['success' => false, 'message' => ''];
+
+    try {
+        switch ($_POST['action']) {
+            case 'create':
+                if (empty($_POST['name'])) {
+                    throw new Exception('Category name is required');
+                }
+                $data = [
+                    'name' => trim($_POST['name']),
+                    'description' => trim($_POST['description'] ?? ''),
+                    'parent_id' => !empty($_POST['parent_id']) ? (int)$_POST['parent_id'] : null
+                ];
+                $id = $categoryModel->create($data);
+                $response = [
+                    'success' => true,
+                    'message' => 'Category created successfully',
+                    'category' => $categoryModel->getByIdWithParent($id)
+                ];
+                break;
+
+            case 'update':
+                if (empty($_POST['id']) || empty($_POST['name'])) {
+                    throw new Exception('Category ID and name are required');
+                }
+                $data = [
+                    'name' => trim($_POST['name']),
+                    'description' => trim($_POST['description'] ?? ''),
+                    'parent_id' => !empty($_POST['parent_id']) ? (int)$_POST['parent_id'] : null
+                ];
+                $categoryModel->update((int)$_POST['id'], $data);
+                $response = [
+                    'success' => true,
+                    'message' => 'Category updated successfully',
+                    'category' => $categoryModel->getByIdWithParent((int)$_POST['id'])
+                ];
+                break;
+
+            case 'delete':
+                if (empty($_POST['id'])) {
+                    throw new Exception('Category ID is required');
+                }
+                $id = (int)$_POST['id'];
+                
+                // Check if category has children
+                if ($categoryModel->hasChildren($id)) {
+                    throw new Exception('Cannot delete category with subcategories');
+                }
+                
+                // Check if category has products
+                if ($categoryModel->hasProducts($id)) {
+                    throw new Exception('Cannot delete category with associated products');
+                }
+                
+                $categoryModel->delete($id);
+                $response = [
+                    'success' => true,
+                    'message' => 'Category deleted successfully'
+                ];
+                break;
+
+            default:
+                throw new Exception('Invalid action');
+        }
+    } catch (Exception $e) {
+        $response['message'] = $e->getMessage();
+    }
+
+    echo json_encode($response);
+    exit;
+}
+
+// Get all categories for display
+$categories = $categoryModel->getAllWithParent();
+$parentCategories = $categoryModel->getParentCategories();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -73,25 +150,27 @@ if (!Session::isLoggedIn() || (Session::getCurrentUser()['role'] ?? '') !== 'adm
                                 <th>ID</th>
                                 <th>Name</th>
                                 <th>Description</th>
+                                <th>Parent</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody id="categoryTableBody">
-                            <!-- Categories will be populated via JavaScript or PHP -->
-                            <?php
-                            // Example placeholder for categories (replace with actual database fetch)
-                            // foreach ($categories as $category) {
-                            //     echo "<tr>
-                            //         <td>{$category['id']}</td>
-                            //         <td>{$category['name']}</td>
-                            //         <td>{$category['description']}</td>
-                            //         <td class='action-buttons'>
-                            //             <button class='btn btn-sm btn-warning edit-btn' data-id='{$category['id']}'><i class='fa fa-edit'></i> Edit</button>
-                            //             <button class='btn btn-sm btn-danger delete-btn' data-id='{$category['id']}'><i class='fa fa-trash'></i> Delete</button>
-                            //         </td>
-                            //     </tr>";
-                            // }
-                            ?>
+                            <?php foreach ($categories as $category): ?>
+                                <tr>
+                                    <td><?php echo htmlspecialchars($category['id']); ?></td>
+                                    <td><?php echo htmlspecialchars($category['name']); ?></td>
+                                    <td><?php echo htmlspecialchars($category['description'] ?? ''); ?></td>
+                                    <td><?php echo htmlspecialchars($category['parent_name'] ?? 'None'); ?></td>
+                                    <td class="action-buttons">
+                                        <button class="btn btn-sm btn-warning edit-btn" data-id="<?php echo $category['id']; ?>">
+                                            <i class="fa fa-edit"></i> Edit
+                                        </button>
+                                        <button class="btn btn-sm btn-danger delete-btn" data-id="<?php echo $category['id']; ?>">
+                                            <i class="fa fa-trash"></i> Delete
+                                        </button>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
                         </tbody>
                     </table>
                 </div>
@@ -111,11 +190,22 @@ if (!Session::isLoggedIn() || (Session::getCurrentUser()['role'] ?? '') !== 'adm
                             <form id="addCategoryForm">
                                 <div class="form-group">
                                     <label for="categoryName">Category Name</label>
-                                    <input type="text" class="form-control" id="categoryName" required>
+                                    <input type="text" class="form-control" id="categoryName" name="name" required>
                                 </div>
                                 <div class="form-group">
                                     <label for="categoryDescription">Description</label>
-                                    <textarea class="form-control" id="categoryDescription" rows="4"></textarea>
+                                    <textarea class="form-control" id="categoryDescription" name="description" rows="4"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label for="parentCategory">Parent Category</label>
+                                    <select class="form-control" id="parentCategory" name="parent_id">
+                                        <option value="">None</option>
+                                        <?php foreach ($parentCategories as $parent): ?>
+                                            <option value="<?php echo $parent['id']; ?>">
+                                                <?php echo htmlspecialchars($parent['name']); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
                                 </div>
                             </form>
                         </div>
@@ -139,14 +229,25 @@ if (!Session::isLoggedIn() || (Session::getCurrentUser()['role'] ?? '') !== 'adm
                         </div>
                         <div class="modal-body">
                             <form id="editCategoryForm">
-                                <input type="hidden" id="editCategoryId">
+                                <input type="hidden" id="editCategoryId" name="id">
                                 <div class="form-group">
                                     <label for="editCategoryName">Category Name</label>
-                                    <input type="text" class="form-control" id="editCategoryName" required>
+                                    <input type="text" class="form-control" id="editCategoryName" name="name" required>
                                 </div>
                                 <div class="form-group">
                                     <label for="editCategoryDescription">Description</label>
-                                    <textarea class="form-control" id="editCategoryDescription" rows="4"></textarea>
+                                    <textarea class="form-control" id="editCategoryDescription" name="description" rows="4"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label for="editParentCategory">Parent Category</label>
+                                    <select class="form-control" id="editParentCategory" name="parent_id">
+                                        <option value="">None</option>
+                                        <?php foreach ($parentCategories as $parent): ?>
+                                            <option value="<?php echo $parent['id']; ?>">
+                                                <?php echo htmlspecialchars($parent['name']); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
                                 </div>
                             </form>
                         </div>
@@ -165,94 +266,119 @@ if (!Session::isLoggedIn() || (Session::getCurrentUser()['role'] ?? '') !== 'adm
     <script src="<?php echo ASSETS_URL; ?>/js/vendor/bootstrap.min.js"></script>
     <script>
         $(document).ready(function() {
-            // Sample data (replace with AJAX call to fetch categories)
-            let categories = [
-                { id: 1, name: 'Electronics', description: 'Devices and gadgets' },
-                { id: 2, name: 'Clothing', description: 'Apparel and accessories' }
-            ];
-
-            // Function to populate table
-            function populateTable() {
-                const tbody = $('#categoryTableBody');
-                tbody.empty();
-                categories.forEach(category => {
-                    tbody.append(`
-                        <tr>
-                            <td>${category.id}</td>
-                            <td>${category.name}</td>
-                            <td>${category.description}</td>
-                            <td class="action-buttons">
-                                <button class="btn btn-sm btn-warning edit-btn" data-id="${category.id}"><i class="fa fa-edit"></i> Edit</button>
-                                <button class="btn btn-sm btn-danger delete-btn" data-id="${category.id}"><i class="fa fa-trash"></i> Delete</button>
-                            </td>
-                        </tr>
-                    `);
-                });
+            // Function to show error message
+            function showError(message) {
+                alert(message); // Replace with a better UI notification system
             }
 
-            // Initial table population
-            populateTable();
+            // Function to refresh the table
+            function refreshTable() {
+                location.reload(); // Simple reload for now, could be optimized with AJAX
+            }
 
             // Add category
             $('#saveCategoryBtn').click(function() {
-                const name = $('#categoryName').val().trim();
-                const description = $('#categoryDescription').val().trim();
-                if (!name) {
-                    alert('Category name is required');
-                    return;
-                }
-                // Simulate adding category (replace with AJAX call)
-                const newCategory = {
-                    id: categories.length + 1,
-                    name: name,
-                    description: description
-                };
-                categories.push(newCategory);
-                populateTable();
-                $('#addCategoryModal').modal('hide');
-                $('#addCategoryForm')[0].reset();
-                // TODO: Add AJAX call to save to server
+                const form = $('#addCategoryForm');
+                const formData = new FormData(form[0]);
+                formData.append('action', 'create');
+
+                $.ajax({
+                    url: window.location.href,
+                    method: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function(response) {
+                        if (response.success) {
+                            $('#addCategoryModal').modal('hide');
+                            form[0].reset();
+                            refreshTable();
+                        } else {
+                            showError(response.message);
+                        }
+                    },
+                    error: function() {
+                        showError('An error occurred while creating the category');
+                    }
+                });
             });
 
             // Edit category
             $(document).on('click', '.edit-btn', function() {
                 const id = $(this).data('id');
-                const category = categories.find(c => c.id === id);
-                if (category) {
-                    $('#editCategoryId').val(category.id);
-                    $('#editCategoryName').val(category.name);
-                    $('#editCategoryDescription').val(category.description);
-                    $('#editCategoryModal').modal('show');
+                const row = $(this).closest('tr');
+                
+                $('#editCategoryId').val(id);
+                $('#editCategoryName').val(row.find('td:eq(1)').text());
+                $('#editCategoryDescription').val(row.find('td:eq(2)').text());
+                
+                // Set parent category if exists
+                const parentName = row.find('td:eq(3)').text();
+                if (parentName !== 'None') {
+                    $('#editParentCategory option').each(function() {
+                        if ($(this).text() === parentName) {
+                            $(this).prop('selected', true);
+                            return false;
+                        }
+                    });
+                } else {
+                    $('#editParentCategory').val('');
                 }
+                
+                $('#editCategoryModal').modal('show');
             });
 
             // Update category
             $('#updateCategoryBtn').click(function() {
-                const id = parseInt($('#editCategoryId').val());
-                const name = $('#editCategoryName').val().trim();
-                const description = $('#editCategoryDescription').val().trim();
-                if (!name) {
-                    alert('Category name is required');
-                    return;
-                }
-                // Simulate updating category (replace with AJAX call)
-                const index = categories.findIndex(c => c.id === id);
-                if (index !== -1) {
-                    categories[index] = { id, name, description };
-                    populateTable();
-                    $('#editCategoryModal').modal('hide');
-                    // TODO: Add AJAX call to update on server
-                }
+                const form = $('#editCategoryForm');
+                const formData = new FormData(form[0]);
+                formData.append('action', 'update');
+
+                $.ajax({
+                    url: window.location.href,
+                    method: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function(response) {
+                        if (response.success) {
+                            $('#editCategoryModal').modal('hide');
+                            refreshTable();
+                        } else {
+                            showError(response.message);
+                        }
+                    },
+                    error: function() {
+                        showError('An error occurred while updating the category');
+                    }
+                });
             });
 
             // Delete category
             $(document).on('click', '.delete-btn', function() {
                 if (confirm('Are you sure you want to delete this category?')) {
                     const id = $(this).data('id');
-                    // Simulate deleting category (replace with AJAX call)
-                    categories = categories.filter(c => c.id !== id);
-                    populateTable();
-                    // TODO: Add AJAX call to delete from server
+                    const formData = new FormData();
+                    formData.append('action', 'delete');
+                    formData.append('id', id);
+
+                    $.ajax({
+                        url: window.location.href,
+                        method: 'POST',
+                        data: formData,
+                        processData: false,
+                        contentType: false,
+                        success: function(response) {
+                            if (response.success) {
+                                refreshTable();
+                            } else {
+                                showError(response.message);
+                            }
+                        },
+                        error: function() {
+                            showError('An error occurred while deleting the category');
+                        }
+                    });
                 }
             });
         });

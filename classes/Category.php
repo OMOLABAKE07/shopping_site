@@ -17,7 +17,12 @@ class Category extends Model {
                 FROM categories c 
                 LEFT JOIN categories p ON c.parent_id = p.id 
                 ORDER BY c.name";
-        return $this->db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+        $result = $this->db->query($sql);
+        $categories = [];
+        while ($row = $result->fetch_assoc()) {
+            $categories[] = $row;
+        }
+        return $categories;
     }
 
     /**
@@ -27,10 +32,12 @@ class Category extends Model {
         $sql = "SELECT c.*, p.name as parent_name 
                 FROM categories c 
                 LEFT JOIN categories p ON c.parent_id = p.id 
-                WHERE c.id = :id";
+                WHERE c.id = ?";
         $stmt = $this->db->prepare($sql);
-        $stmt->execute(['id' => $id]);
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        $stmt->bind_param('i', $id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        return $result->fetch_assoc();
     }
 
     /**
@@ -38,37 +45,54 @@ class Category extends Model {
      */
     public function getParentCategories() {
         $sql = "SELECT * FROM categories WHERE parent_id IS NULL ORDER BY name";
-        return $this->db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+        $result = $this->db->query($sql);
+        $categories = [];
+        while ($row = $result->fetch_assoc()) {
+            $categories[] = $row;
+        }
+        return $categories;
     }
 
     /**
      * Get child categories for a given parent ID
      */
     public function getChildCategories($parentId) {
-        $sql = "SELECT * FROM categories WHERE parent_id = :parent_id ORDER BY name";
+        $sql = "SELECT * FROM categories WHERE parent_id = ? ORDER BY name";
         $stmt = $this->db->prepare($sql);
-        $stmt->execute(['parent_id' => $parentId]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $stmt->bind_param('i', $parentId);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $categories = [];
+        while ($row = $result->fetch_assoc()) {
+            $categories[] = $row;
+        }
+        return $categories;
     }
 
     /**
      * Check if a category has any child categories
      */
     public function hasChildren($id) {
-        $sql = "SELECT COUNT(*) FROM categories WHERE parent_id = :id";
+        $sql = "SELECT COUNT(*) as count FROM categories WHERE parent_id = ?";
         $stmt = $this->db->prepare($sql);
-        $stmt->execute(['id' => $id]);
-        return $stmt->fetchColumn() > 0;
+        $stmt->bind_param('i', $id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+        return $row['count'] > 0;
     }
 
     /**
      * Check if a category has any associated products
      */
     public function hasProducts($id) {
-        $sql = "SELECT COUNT(*) FROM products WHERE category_id = :id";
+        $sql = "SELECT COUNT(*) as count FROM products WHERE category_id = ?";
         $stmt = $this->db->prepare($sql);
-        $stmt->execute(['id' => $id]);
-        return $stmt->fetchColumn() > 0;
+        $stmt->bind_param('i', $id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+        return $row['count'] > 0;
     }
 
     public function getAll() {

@@ -3,9 +3,159 @@ require_once 'Model.php';
 
 class Product extends Model {
     protected $table = 'products';
+    protected $fillable = [
+        'name', 'description', 'price', 'sale_price', 'category_id',
+        'stock', 'sku', 'image_url', 'status', 'featured'
+    ];
 
     public function __construct() {
         parent::__construct();
+    }
+
+    /**
+     * Get all products with their category information
+     */
+    public function getAllWithCategory() {
+        $sql = "SELECT p.*, c.name as category_name 
+                FROM products p 
+                LEFT JOIN categories c ON p.category_id = c.id 
+                ORDER BY p.name";
+        $result = $this->db->query($sql);
+        $products = [];
+        while ($row = $result->fetch_assoc()) {
+            $products[] = $row;
+        }
+        return $products;
+    }
+
+    /**
+     * Get a product by ID with its category information
+     */
+    public function getById($id) {
+        $sql = "SELECT p.*, c.name as category_name 
+                FROM products p 
+                LEFT JOIN categories c ON p.category_id = c.id 
+                WHERE p.id = ?";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bind_param('i', $id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        return $result->fetch_assoc();
+    }
+
+    /**
+     * Get products by category ID
+     */
+    public function getByCategory($categoryId) {
+        $sql = "SELECT * FROM products WHERE category_id = ? AND status = 'active' ORDER BY name";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bind_param('i', $categoryId);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $products = [];
+        while ($row = $result->fetch_assoc()) {
+            $products[] = $row;
+        }
+        return $products;
+    }
+
+    /**
+     * Get featured products
+     */
+    public function getFeatured() {
+        $sql = "SELECT p.*, c.name as category_name 
+                FROM products p 
+                LEFT JOIN categories c ON p.category_id = c.id 
+                WHERE p.featured = 1 AND p.status = 'active' 
+                ORDER BY p.name";
+        $result = $this->db->query($sql);
+        $products = [];
+        while ($row = $result->fetch_assoc()) {
+            $products[] = $row;
+        }
+        return $products;
+    }
+
+    /**
+     * Search products by name or description
+     */
+    public function search($query) {
+        $searchTerm = "%{$query}%";
+        $sql = "SELECT p.*, c.name as category_name 
+                FROM products p 
+                LEFT JOIN categories c ON p.category_id = c.id 
+                WHERE (p.name LIKE ? OR p.description LIKE ?) 
+                AND p.status = 'active' 
+                ORDER BY p.name";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bind_param('ss', $searchTerm, $searchTerm);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $products = [];
+        while ($row = $result->fetch_assoc()) {
+            $products[] = $row;
+        }
+        return $products;
+    }
+
+    /**
+     * Update product stock
+     */
+    public function updateStock($id, $quantity) {
+        $sql = "UPDATE products SET stock = stock - ? WHERE id = ? AND stock >= ?";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bind_param('iii', $quantity, $id, $quantity);
+        $stmt->execute();
+        return $stmt->affected_rows > 0;
+    }
+
+    /**
+     * Check if product is in stock
+     */
+    public function isInStock($id, $quantity = 1) {
+        $sql = "SELECT stock FROM products WHERE id = ? AND status = 'active'";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bind_param('i', $id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+        return $row && $row['stock'] >= $quantity;
+    }
+
+    /**
+     * Get products with low stock (less than 10 items)
+     */
+    public function getLowStock() {
+        $sql = "SELECT p.*, c.name as category_name 
+                FROM products p 
+                LEFT JOIN categories c ON p.category_id = c.id 
+                WHERE p.stock < 10 AND p.status = 'active' 
+                ORDER BY p.stock ASC";
+        $result = $this->db->query($sql);
+        $products = [];
+        while ($row = $result->fetch_assoc()) {
+            $products[] = $row;
+        }
+        return $products;
+    }
+
+    /**
+     * Get products on sale
+     */
+    public function getOnSale() {
+        $sql = "SELECT p.*, c.name as category_name 
+                FROM products p 
+                LEFT JOIN categories c ON p.category_id = c.id 
+                WHERE p.sale_price IS NOT NULL 
+                AND p.sale_price < p.price 
+                AND p.status = 'active' 
+                ORDER BY (p.price - p.sale_price) / p.price DESC";
+        $result = $this->db->query($sql);
+        $products = [];
+        while ($row = $result->fetch_assoc()) {
+            $products[] = $row;
+        }
+        return $products;
     }
 
     public function getFeaturedProducts($limit = 4) {
@@ -82,15 +232,6 @@ class Product extends Model {
         }
         
         return $product;
-    }
-
-    public function updateStock($productId, $quantity) {
-        $sql = "UPDATE {$this->table} 
-                SET stock = stock - ? 
-                WHERE id = ? AND stock >= ?";
-        $stmt = $this->db->prepare($sql);
-        $stmt->bind_param('iii', $quantity, $productId, $quantity);
-        return $stmt->execute();
     }
 
     public function getProductReviews($productId) {

@@ -1,5 +1,5 @@
 <?php
-// Load configuration and autoloader first
+define('SECURE_ACCESS', true);
 require_once __DIR__ . '/../config/paths.php';
 
 // Then start session and include header

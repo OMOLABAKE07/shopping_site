@@ -11,7 +11,7 @@
                     <li><a href="<?php echo BASE_URL; ?>/pages/about-us.php">About Us</a></li>
                     <li><a href="<?php echo BASE_URL; ?>/pages/contact.php">Contact Us</a></li>
                     <li><a href="<?php echo BASE_URL; ?>/privacy.php">Privacy Policy</a></li>
-                    <li><a href="<?php echo BASE_URL; ?>/terms.php">Terms & Conditions</a></li>
+                    <li><a href="<?php echo BASE_URL; ?>/pages/terms.php">Terms & Conditions</a></li>
                 </ul>
             </div>
             <div class="col-md-4">

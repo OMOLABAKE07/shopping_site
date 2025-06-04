@@ -1,9 +1,20 @@
 <?php
 // Database configuration
-define('DB_SERVER', 'localhost');
-define('DB_USERNAME', 'root');     // Change if you have a different username
-define('DB_PASSWORD', '');         // Change if you have a password
-define('DB_NAME', 'shopping_site');
+if (!defined('DB_SERVER')) {
+    define('DB_SERVER', 'localhost');
+}
+
+if (!defined('DB_USERNAME')) {
+    define('DB_USERNAME', 'root'); // Change if you have a different username
+}
+
+if (!defined('DB_PASSWORD')) {
+    define('DB_PASSWORD', '');     // Change if you have a password
+}
+
+if (!defined('DB_NAME')) {
+    define('DB_NAME', 'shopping_site');
+}
 
 // Attempt to connect to MySQL database
 $conn = mysqli_connect(DB_SERVER, DB_USERNAME, DB_PASSWORD);

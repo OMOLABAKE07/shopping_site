@@ -212,7 +212,7 @@ require_once __DIR__ . '/includes/header.php';
 ?>
 
 <main>
-    <section class="featured-places">
+    <section class="featured-places cart-section">
         <div class="container">
             <?php if ($flash = Session::getFlash()): ?>
                 <div class="alert alert-<?php echo $flash['type']; ?>">
@@ -220,19 +220,19 @@ require_once __DIR__ . '/includes/header.php';
                 </div>
             <?php endif; ?>
 
-            <h2>Shopping Cart</h2>
+            <h2 class="cart-title">Shopping Cart</h2>
 
             <?php if (empty($cartItems) && empty($savedItems)): ?>
-                <div class="text-center">
+                <div class="text-center empty-cart">
                     <p>Your cart is empty.</p>
-                    <a href="<?php echo BASE_URL; ?>/" class="btn btn-primary">Continue Shopping</a>
+                    <a href="<?php echo BASE_URL; ?>/" class="btn btn-primary continue-shopping">Continue Shopping</a>
                 </div>
             <?php else: ?>
                 <?php if (!empty($cartItems)): ?>
                     <div class="row">
                         <div class="col-md-8">
                             <div class="table-responsive">
-                                <table class="table table-hover">
+                                <table class="table table-hover cart-table">
                                     <thead>
                                         <tr>
                                             <th>Product</th>
@@ -247,13 +247,20 @@ require_once __DIR__ . '/includes/header.php';
                                             <tr data-cart-id="<?php echo $item['id']; ?>">
                                                 <td>
                                                     <div class="d-flex align-items-center">
-                                                        <img src="<?php echo ASSETS_URL; ?>/img/<?php echo $item['image']; ?>" 
+                                                        <img src="<?php 
+                                                            $imagePath = $item['image'] ?? 'default-product.jpg';
+                                                            if (strpos($imagePath, '/assets/img/') === 0) {
+                                                                echo ASSETS_URL . substr($imagePath, 11); // Remove /assets/img/ prefix
+                                                            } else {
+                                                                echo ASSETS_URL . '/img/' . $imagePath;
+                                                            }
+                                                        ?>" 
                                                              alt="<?php echo htmlspecialchars($item['name']); ?>"
-                                                             class="img-thumbnail mr-3"
+                                                             class="img-thumbnail mr-3 cart-item-image"
                                                              style="width: 80px;">
                                                         <div>
-                                                            <h5 class="mb-0"><?php echo htmlspecialchars($item['name']); ?></h5>
-                                                            <?php if ($item['options']): ?>
+                                                            <h5 class="mb-0 cart-item-name"><?php echo htmlspecialchars($item['name']); ?></h5>
+                                                            <?php if (isset($item['options']) && $item['options']): ?>
                                                                 <small class="text-muted">
                                                                     <?php echo htmlspecialchars($item['options']); ?>
                                                                 </small>
@@ -261,7 +268,7 @@ require_once __DIR__ . '/includes/header.php';
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td>
+                                                <td class="cart-item-price">
                                                     <?php if ($item['sale_price']): ?>
                                                         <span class="text-muted text-decoration-line-through">
                                                             $<?php echo number_format($item['price'], 2); ?>
@@ -274,20 +281,20 @@ require_once __DIR__ . '/includes/header.php';
                                                     <?php endif; ?>
                                                 </td>
                                                 <td>
-                                                    <div class="input-group" style="width: 120px;">
+                                                    <div class="input-group quantity-group" style="width: 120px;">
                                                         <button type="button" 
-                                                                class="btn btn-outline-secondary btn-sm"
+                                                                class="btn btn-outline-secondary btn-sm quantity-btn"
                                                                 onclick="updateCartItem(<?php echo $item['id']; ?>, <?php echo $item['quantity'] - 1; ?>)">
                                                             <i class="fa fa-minus"></i>
                                                         </button>
                                                         <input type="number" 
-                                                               class="form-control form-control-sm text-center" 
+                                                               class="form-control form-control-sm text-center quantity-input" 
                                                                value="<?php echo $item['quantity']; ?>"
                                                                min="1"
                                                                max="<?php echo $item['stock']; ?>"
                                                                onchange="updateCartItem(<?php echo $item['id']; ?>, this.value)">
                                                         <button type="button" 
-                                                                class="btn btn-outline-secondary btn-sm"
+                                                                class="btn btn-outline-secondary btn-sm quantity-btn"
                                                                 onclick="updateCartItem(<?php echo $item['id']; ?>, <?php echo $item['quantity'] + 1; ?>)">
                                                             <i class="fa fa-plus"></i>
                                                         </button>
@@ -301,12 +308,12 @@ require_once __DIR__ . '/includes/header.php';
                                                 </td>
                                                 <td>
                                                     <button type="button" 
-                                                            class="btn btn-outline-primary btn-sm"
+                                                            class="btn btn-outline-primary btn-sm action-btn save-btn"
                                                             onclick="saveForLater(<?php echo $item['id']; ?>)">
                                                         <i class="fa fa-bookmark"></i> Save
                                                     </button>
                                                     <button type="button" 
-                                                            class="btn btn-outline-danger btn-sm"
+                                                            class="btn btn-outline-danger btn-sm action-btn remove-btn"
                                                             onclick="removeCartItem(<?php echo $item['id']; ?>)">
                                                         <i class="fa fa-trash"></i> Remove
                                                     </button>
@@ -319,7 +326,7 @@ require_once __DIR__ . '/includes/header.php';
 
                             <div class="mt-3">
                                 <button type="button" 
-                                        class="btn btn-danger"
+                                        class="btn btn-danger clear-cart-btn"
                                         onclick="clearCart()">
                                     <i class="fa fa-trash"></i> Clear Cart
                                 </button>
@@ -327,27 +334,27 @@ require_once __DIR__ . '/includes/header.php';
                         </div>
 
                         <div class="col-md-4">
-                            <div class="card">
+                            <div class="card order-summary-card">
                                 <div class="card-body">
                                     <h5 class="card-title">Order Summary</h5>
-                                    <div class="d-flex justify-content-between mb-3">
+                                    <div class="summary-item d-flex justify-content-between mb-3">
                                         <span>Subtotal:</span>
                                         <span class="cart-total">$<?php echo number_format($cartTotal, 2); ?></span>
                                     </div>
-                                    <div class="d-flex justify-content-between mb-3">
+                                    <div class="summary-item d-flex justify-content-between mb-3">
                                         <span>Shipping:</span>
                                         <span>Free</span>
                                     </div>
-                                    <div class="d-flex justify-content-between mb-3">
+                                    <div class="summary-item d-flex justify-content-between mb-3">
                                         <span>Tax (8%):</span>
                                         <span>$<?php echo number_format($cartTotal * 0.08, 2); ?></span>
                                     </div>
                                     <hr>
-                                    <div class="d-flex justify-content-between mb-3">
+                                    <div class="summary-item d-flex justify-content-between mb-3">
                                         <strong>Total:</strong>
                                         <strong>$<?php echo number_format($cartTotal * 1.08, 2); ?></strong>
                                     </div>
-                                    <a href="<?php echo BASE_URL; ?>/checkout.php" class="btn btn-primary w-100">
+                                    <a href="<?php echo BASE_URL; ?>/checkout.php" class="btn btn-primary w-100 checkout-btn">
                                         Proceed to Checkout
                                     </a>
                                 </div>
@@ -359,9 +366,9 @@ require_once __DIR__ . '/includes/header.php';
                 <?php if (!empty($savedItems)): ?>
                     <div class="row mt-5">
                         <div class="col-12">
-                            <h3>Saved for Later</h3>
+                            <h3 class="saved-title">Saved for Later</h3>
                             <div class="table-responsive">
-                                <table class="table table-hover">
+                                <table class="table table-hover cart-table">
                                     <thead>
                                         <tr>
                                             <th>Product</th>
@@ -376,13 +383,20 @@ require_once __DIR__ . '/includes/header.php';
                                             <tr data-saved-item-id="<?php echo $item['id']; ?>">
                                                 <td>
                                                     <div class="d-flex align-items-center">
-                                                        <img src="<?php echo ASSETS_URL; ?>/img/<?php echo $item['image']; ?>" 
+                                                        <img src="<?php 
+                                                            $imagePath = $item['image'] ?? 'default-product.jpg';
+                                                            if (strpos($imagePath, '/assets/img/') === 0) {
+                                                                echo ASSETS_URL . substr($imagePath, 11); // Remove /assets/img/ prefix
+                                                            } else {
+                                                                echo ASSETS_URL . '/img/' . $imagePath;
+                                                            }
+                                                        ?>" 
                                                              alt="<?php echo htmlspecialchars($item['name']); ?>"
-                                                             class="img-thumbnail mr-3"
+                                                             class="img-thumbnail mr-3 cart-item-image"
                                                              style="width: 80px;">
                                                         <div>
-                                                            <h5 class="mb-0"><?php echo htmlspecialchars($item['name']); ?></h5>
-                                                            <?php if ($item['options']): ?>
+                                                            <h5 class="mb-0 cart-item-name"><?php echo htmlspecialchars($item['name']); ?></h5>
+                                                            <?php if (isset($item['options']) && $item['options']): ?>
                                                                 <small class="text-muted">
                                                                     <?php echo htmlspecialchars($item['options']); ?>
                                                                 </small>
@@ -390,7 +404,7 @@ require_once __DIR__ . '/includes/header.php';
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td>
+                                                <td class="cart-item-price">
                                                     <?php if ($item['sale_price']): ?>
                                                         <span class="text-muted text-decoration-line-through">
                                                             $<?php echo number_format($item['price'], 2); ?>
@@ -411,12 +425,12 @@ require_once __DIR__ . '/includes/header.php';
                                                 </td>
                                                 <td>
                                                     <button type="button" 
-                                                            class="btn btn-primary btn-sm move-to-cart-btn"
+                                                            class="btn btn-primary btn-sm action-btn move-to-cart-btn"
                                                             onclick="moveToCart(<?php echo $item['id']; ?>)">
                                                         <i class="fa fa-shopping-cart"></i> Move to Cart
                                                     </button>
                                                     <button type="button" 
-                                                            class="btn btn-danger btn-sm remove-saved-item-btn"
+                                                            class="btn btn-danger btn-sm action-btn remove-btn"
                                                             onclick="removeSavedItem(<?php echo $item['id']; ?>)">
                                                         <i class="fa fa-trash"></i> Remove
                                                     </button>
@@ -433,6 +447,8 @@ require_once __DIR__ . '/includes/header.php';
         </div>
     </section>
 </main>
+
+
 
 <script>
 // Function to update cart item quantity via AJAX
@@ -653,7 +669,7 @@ function showMessage(type, message) {
     alertDiv.innerHTML = `
         ${message}
         <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
+            <span aria-hidden="true">×</span>
         </button>
     `;
     
@@ -667,4 +683,4 @@ function showMessage(type, message) {
 }
 </script>
 
-<?php include __DIR__ . '/includes/footer.php'; ?> 
+<?php include __DIR__ . '/includes/footer.php'; ?>

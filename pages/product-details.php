@@ -1,9 +1,75 @@
 <?php
 // Load configuration and autoloader first
 require_once __DIR__ . '/../config/paths.php';
+require_once __DIR__ . '/../config/database.php';  // Add database connection
 
-// Then start session and include header
+// Start session
 Session::start();
+
+// Check if product ID is provided
+$product_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+if ($product_id <= 0) {
+    header("Location: " . BASE_URL . "/pages/products.php");
+    exit;
+}
+
+// Fetch product details
+$stmt = $pdo->prepare("SELECT id, name, description, price, sale_price, image_url FROM products WHERE id = ? AND status = 'active'");
+$stmt->execute([$product_id]);
+$product = $stmt->fetch(PDO::FETCH_ASSOC);
+if (!$product) {
+    header("Location: " . BASE_URL . "/pages/products.php");
+    exit;
+}
+
+// Fetch product images
+$stmt = $pdo->prepare("SELECT image_url, is_primary FROM product_images WHERE product_id = ?");
+$stmt->execute([$product_id]);
+$product_images = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$primary_image = $product['image_url'];
+foreach ($product_images as $image) {
+    if ($image['is_primary']) {
+        $primary_image = $image['image_url'];
+        break;
+    }
+}
+
+// Handle Add to Cart
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_to_cart'])) {
+    if (!isset($_SESSION['user_id'])) {
+        header("Location: " . BASE_URL . "/pages/login.php?error=login_required");
+        exit;
+    }
+
+    $user_id = $_SESSION['user_id'];
+    $quantity = isset($_POST['quantity']) ? (int)$_POST['quantity'] : 1;
+    $extra1 = isset($_POST['extra1']) ? htmlspecialchars($_POST['extra1']) : '';
+
+    // Validate quantity
+    if ($quantity <= 0) {
+        $error = "Invalid quantity.";
+    } else {
+        // Check if product is already in cart
+        $stmt = $pdo->prepare("SELECT id, quantity FROM cart WHERE user_id = ? AND product_id = ?");
+        $stmt->execute([$user_id, $product_id]);
+        $cart_item = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($cart_item) {
+            // Update quantity if item exists
+            $new_quantity = $cart_item['quantity'] + $quantity;
+            $stmt = $pdo->prepare("UPDATE cart SET quantity = ?, updated_at = NOW() WHERE id = ?");
+            $stmt->execute([$new_quantity, $cart_item['id']]);
+        } else {
+            // Insert new cart item
+            $stmt = $pdo->prepare("INSERT INTO cart (user_id, product_id, quantity) VALUES (?, ?, ?)");
+            $stmt->execute([$user_id, $product_id, $quantity]);
+        }
+
+        $success = "Product added to cart!";
+    }
+}
+
+// Now include the header after all potential redirects
 require_once __DIR__ . '/../includes/header.php';
 ?>
 <!DOCTYPE html>
@@ -137,9 +203,9 @@ require_once __DIR__ . '/../includes/header.php';
                         </div>
                       </div>
 
-                        <div class="blue-button">
-                            <a href="#">Add to Cart</a>
-                        </div>
+                      <div class="blue-button">
+                                <button type="submit" name="add_to_cart">Add to Cart</button>
+                            </div>
                     </form>
                   </div>
                 </div>

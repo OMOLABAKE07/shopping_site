@@ -85,7 +85,14 @@ if (!file_exists($datepicker_css)) {
                                                 <?php $displayPrice = $item['sale_price'] ?? $item['price']; ?>
                                                 <div class="cart-item" data-cart-id="<?php echo $item['id']; ?>">
                                                     <div class="cart-item-image">
-                                                        <img src="<?php echo ASSETS_URL; ?>/img/<?php echo $item['image_url']; ?>" 
+                                                        <img src="<?php 
+                                                            $imagePath = $item['image_url'] ?? 'default-product.jpg';
+                                                            if (strpos($imagePath, '/assets/img/') === 0) {
+                                                                echo ASSETS_URL . substr($imagePath, 11); // Remove /assets/img/ prefix
+                                                            } else {
+                                                                echo ASSETS_URL . '/img/' . $imagePath;
+                                                            }
+                                                        ?>" 
                                                              alt="<?php echo htmlspecialchars($item['name']); ?>">
                                                     </div>
                                                     <div class="cart-item-details">

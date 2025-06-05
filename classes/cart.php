@@ -38,7 +38,7 @@ class Cart extends Model {
     }
 
     public function getCartItems($userId) {
-        $sql = "SELECT c.*, p.name, p.price, p.sale_price, p.image_url, p.stock
+        $sql = "SELECT c.*, p.name, p.price, p.sale_price, p.image_url as image_url, p.stock
                 FROM {$this->table} c
                 JOIN products p ON c.product_id = p.id
                 WHERE c.user_id = ? AND p.status = 'active'

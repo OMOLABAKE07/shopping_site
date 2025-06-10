@@ -282,46 +282,137 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Function to update cart UI elements
     function updateCartUI(data) {
+        // Update cart count in header
+        const cartCount = document.querySelector('.cart-count');
+        if (cartCount) {
+            cartCount.textContent = data.cart_count;
+        }
+
         // Update cart total
-        const totalElement = document.querySelector('.cart-total');
-        if (totalElement) {
-            totalElement.textContent = `$${data.cart_total.toFixed(2)}`;
+        const cartTotal = document.querySelector('.cart-total');
+        if (cartTotal) {
+            cartTotal.textContent = '$' + data.cart_total.toFixed(2);
         }
 
-        // Update cart count in header if it exists
-        const cartCountElement = document.querySelector('.cart-count');
-        if (cartCountElement) {
-            cartCountElement.textContent = data.cart_count;
+        // Update cart dropdown items
+        const cartDropdown = document.querySelector('.cart-dropdown-menu .cart-items');
+        if (cartDropdown && data.items) {
+            if (data.items.length === 0) {
+                cartDropdown.innerHTML = '<div class="cart-empty"><p>Your cart is empty</p></div>';
+            } else {
+                cartDropdown.innerHTML = data.items.map(item => {
+                    const displayPrice = item.sale_price || item.price;
+                    return `
+                        <div class="cart-item" data-cart-id="${item.id}">
+                            <div class="cart-item-image">
+                                <img src="${ASSETS_URL}/img/${item.image_url}" alt="${item.name}">
+                            </div>
+                            <div class="cart-item-details">
+                                <h6>${item.name}</h6>
+                                <p>$${displayPrice.toFixed(2)} x ${item.quantity}</p>
+                            </div>
+                            <button type="button" class="remove-item" onclick="removeCartItem(${item.id})">
+                                <i class="fa fa-times"></i>
+                            </button>
+                        </div>
+                    `;
+                }).join('');
+            }
         }
 
-        // Update individual item totals
-        if (data.items) {
-            data.items.forEach(item => {
-                const itemTotalElement = document.querySelector(`.item-total[data-cart-id="${item.id}"]`);
-                if (itemTotalElement) {
-                    const price = item.sale_price || item.price;
-                    itemTotalElement.textContent = `$${(price * item.quantity).toFixed(2)}`;
-                }
-            });
+        // Update cart table if it exists
+        const cartTable = document.querySelector('#cart-table tbody');
+        if (cartTable && data.items) {
+            if (data.items.length === 0) {
+                cartTable.innerHTML = '<tr><td colspan="5" class="text-center">Your cart is empty</td></tr>';
+                // Hide cart actions if cart is empty
+                const cartActions = document.querySelector('.cart-actions');
+                if (cartActions) cartActions.style.display = 'none';
+            } else {
+                cartTable.innerHTML = data.items.map(item => {
+                    const displayPrice = item.sale_price || item.price;
+                    return `
+                        <tr data-cart-id="${item.id}">
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <img src="${ASSETS_URL}/img/${item.image_url}" 
+                                         alt="${item.name}"
+                                         class="img-thumbnail mr-3"
+                                         style="width: 80px;">
+                                    <div>
+                                        <h5 class="mb-0">${item.name}</h5>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                ${item.sale_price ? `
+                                    <span class="text-muted text-decoration-line-through">$${item.price.toFixed(2)}</span><br>
+                                    <span class="text-danger">$${item.sale_price.toFixed(2)}</span>
+                                ` : `
+                                    $${item.price.toFixed(2)}
+                                `}
+                            </td>
+                            <td>
+                                <div class="input-group" style="width: 120px;">
+                                    <button type="button" 
+                                            class="btn btn-outline-secondary btn-sm"
+                                            onclick="updateCartItem(${item.id}, ${item.quantity - 1})">
+                                        <i class="fa fa-minus"></i>
+                                    </button>
+                                    <input type="number" 
+                                           class="form-control form-control-sm text-center" 
+                                           value="${item.quantity}"
+                                           min="1"
+                                           max="${item.stock}"
+                                           onchange="updateCartItem(${item.id}, this.value)">
+                                    <button type="button" 
+                                            class="btn btn-outline-secondary btn-sm"
+                                            onclick="updateCartItem(${item.id}, ${item.quantity + 1})">
+                                        <i class="fa fa-plus"></i>
+                                    </button>
+                                </div>
+                            </td>
+                            <td>$${(displayPrice * item.quantity).toFixed(2)}</td>
+                            <td>
+                                <button type="button" 
+                                        class="btn btn-primary btn-sm"
+                                        onclick="saveForLater(${item.id})">
+                                    <i class="fa fa-bookmark"></i> Save
+                                </button>
+                                <button type="button" 
+                                        class="btn btn-danger btn-sm"
+                                        onclick="removeCartItem(${item.id})">
+                                    <i class="fa fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+                // Show cart actions if cart has items
+                const cartActions = document.querySelector('.cart-actions');
+                if (cartActions) cartActions.style.display = 'block';
+            }
         }
     }
 
     // Function to show messages
     function showMessage(type, message) {
         const alertDiv = document.createElement('div');
-        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show`;
         alertDiv.innerHTML = `
             ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
         `;
         
         const container = document.querySelector('.container');
         container.insertBefore(alertDiv, container.firstChild);
 
-        // Auto-dismiss after 5 seconds
+        // Auto dismiss after 3 seconds
         setTimeout(() => {
             alertDiv.remove();
-        }, 5000);
+        }, 3000);
     }
 
     // Add event listeners to quantity inputs
@@ -372,24 +463,16 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // Remove the item from cart table
                 const row = document.querySelector(`tr[data-cart-id="${cartId}"]`);
                 if (row) {
                     row.remove();
                 }
-                
-                // Update cart UI
                 updateCartUI(data);
-                
-                // Update saved items section
-                updateSavedItems(data.saved_items);
-                
-                // Show success message
                 showMessage('success', data.message);
                 
-                // If cart is empty, reload the page
-                if (data.cart_count === 0) {
-                    window.location.reload();
+                // Update saved items section if it exists
+                if (data.saved_items) {
+                    updateSavedItems(data.saved_items);
                 }
             } else {
                 showMessage('error', data.message);
@@ -413,23 +496,17 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // Remove the item from saved items table
                 const row = document.querySelector(`tr[data-saved-item-id="${savedItemId}"]`);
                 if (row) {
                     row.remove();
                 }
-                
-                // Update cart UI
                 updateCartUI(data);
-                
-                // Update saved items section
-                updateSavedItems(data.saved_items);
-                
-                // Show success message
                 showMessage('success', data.message);
                 
-                // Reload the page to show updated cart
-                window.location.reload();
+                // Update saved items section if it exists
+                if (data.saved_items) {
+                    updateSavedItems(data.saved_items);
+                }
             } else {
                 showMessage('error', data.message);
             }

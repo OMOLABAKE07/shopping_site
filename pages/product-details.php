@@ -153,60 +153,50 @@ require_once __DIR__ . '/../includes/header.php';
         <section class="featured-places">
             <div class="container">
                <div class="row">
-                  <div class="col-md-6 col-xs-12">
-                    <div>
-                      <img src="<?php echo ASSETS_URL; ?>/img/product-1-720x480.jpg" alt="Product 1" class="img-responsive wc-image">
+                  <div class="col-lg-6">
+                    <div class="product-image">
+                        <img src="<?php echo htmlspecialchars($primary_image); ?>" alt="<?php echo htmlspecialchars($product['name']); ?>" class="img-fluid" id="main-product-image">
                     </div>
-                    <br>
-                    <div class="row">
-                      <div class="col-sm-4 col-xs-6">
-                          <img src="<?php echo ASSETS_URL; ?>/img/product-1-720x480.jpg" alt="Product 1 Thumbnail" class="img-responsive">
-                      </div>
-                      <div class="col-sm-4 col-xs-6">
-                          <img src="<?php echo ASSETS_URL; ?>/img/product-2-720x480.jpg" alt="Product 2 Thumbnail" class="img-responsive">
-                      </div>
-                      <div class="col-sm-4 col-xs-6">
-                          <img src="<?php echo ASSETS_URL; ?>/img/product-3-720x480.jpg" alt="Product 3 Thumbnail" class="img-responsive">
-                      </div>
+                    <?php if (!empty($product_images)): ?>
+                    <div class="product-thumbnails mt-3">
+                        <div class="row">
+                            <?php foreach ($product_images as $image): ?>
+                            <div class="col-3">
+                                <img src="<?php echo htmlspecialchars($image['image_url']); ?>" 
+                                     alt="<?php echo htmlspecialchars($product['name']); ?> thumbnail" 
+                                     class="img-fluid thumbnail" 
+                                     onclick="updateMainImage('<?php echo htmlspecialchars($image['image_url']); ?>')"
+                                     style="cursor: pointer;">
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
                     </div>
+                    <?php endif; ?>
                   </div>
 
-                  <div class="col-md-6 col-xs-12">
-                    <form action="#" method="post" class="form">
-                      <h2><small><del> $999.00</del></small><strong class="text-primary">$779.00</strong></h2>
-
-                      <br>
-
-                      <p class="lead">
-                        Lorem ipsum dolor sit amet, consectetur adipisicing elit. Excepturi ratione molestias maxime odio. Provident ratione vero, corrupti, optio laborum aut!
-                      </p>
-
-                      <br> 
-
-                      <div class="row">
-                        <div class="col-sm-4">
-                            <label class="control-label">Extra 1</label>
-
-                                <div class="form-group">
-                                <select class="form-control">
-                                    <option value="0">18 gears</option>
-                                    <option value="1">21 gears</option>
-                                    <option value="2">27 gears</option>
-                                </select>
-                            </div>
-
-                            <label class="control-label">Quantity</label>
-
-                            <div class="form-group">
-                                <input type="text" class="form-control" placeholder="1">
-                            </div>
+                  <div class="col-lg-6">
+                    <div class="product-info">
+                        <h2><?php echo htmlspecialchars($product['name']); ?></h2>
+                        <div class="price">
+                            <?php if ($product['sale_price']): ?>
+                                <span class="sale-price">$<?php echo number_format($product['sale_price'], 2); ?></span>
+                                <span class="original-price">$<?php echo number_format($product['price'], 2); ?></span>
+                            <?php else: ?>
+                                <span class="regular-price">$<?php echo number_format($product['price'], 2); ?></span>
+                            <?php endif; ?>
                         </div>
-                      </div>
-
-                      <div class="blue-button">
-                                <button type="submit" name="add_to_cart">Add to Cart</button>
+                        <div class="description">
+                            <?php echo nl2br(htmlspecialchars($product['description'])); ?>
+                        </div>
+                        <form action="" method="POST" class="add-to-cart-form">
+                            <input type="hidden" name="product_id" value="<?php echo $product['id']; ?>">
+                            <div class="form-group">
+                                <label for="quantity">Quantity:</label>
+                                <input type="number" id="quantity" name="quantity" class="form-control" value="1" min="1" max="<?php echo $product['stock']; ?>">
                             </div>
-                    </form>
+                            <button type="submit" name="add_to_cart" class="btn btn-primary">Add to Cart</button>
+                        </form>
+                    </div>
                   </div>
                 </div>
             </div>
@@ -282,5 +272,11 @@ require_once __DIR__ . '/../includes/header.php';
     <script src="<?php echo ASSETS_URL; ?>/js/datepicker.js"></script>
     <script src="<?php echo ASSETS_URL; ?>/js/plugins.js"></script>
     <script src="<?php echo ASSETS_URL; ?>/js/main.js"></script>
+
+    <script>
+    function updateMainImage(src) {
+        document.getElementById('main-product-image').src = src;
+    }
+    </script>
 </body>
 </html>
